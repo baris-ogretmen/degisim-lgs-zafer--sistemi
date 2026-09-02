@@ -218,6 +218,8 @@ body.has-disc .qr-fab{ bottom:calc(4.4rem + env(safe-area-inset-bottom)); }
   <button class="nav-btn" id="nav-deneme" onclick="git('deneme')"><i class="fas fa-square-poll-vertical"></i> Denemeler</button>
   <button class="nav-btn" id="nav-karne" onclick="git('karne')"><i class="fas fa-chart-pie"></i> Karnem</button>
   <button class="nav-btn" id="nav-hedef" onclick="git('hedef')"><i class="fas fa-bullseye"></i> Hedefim</button>
+  <button class="nav-btn" id="nav-defter" onclick="git('defter')"><i class="fas fa-book-bookmark"></i> Defterim</button>
+  <button class="nav-btn" id="nav-kaynak" onclick="git('kaynak')"><i class="fas fa-toolbox"></i> Kaynaklar</button>
 </nav>
 
 <!-- ================= LOGIN ================= -->
@@ -277,6 +279,15 @@ body.has-disc .qr-fab{ bottom:calc(4.4rem + env(safe-area-inset-bottom)); }
 
 <!-- ================= HEDEF ================= -->
 <div id="view-hedef" class="section"></div>
+
+<!-- ================= DEFTERİM (Zafer Defteri) ================= -->
+<div id="view-defter" class="section"></div>
+
+<!-- ================= VELİ & MÜDÜR RAPORU ================= -->
+<div id="view-rapor" class="section"></div>
+
+<!-- ================= KAYNAKLAR (MEB + YouTube + araçlar) ================= -->
+<div id="view-kaynak" class="section"></div>
 
 <!-- ================= AYARLAR MODAL ================= -->
 <div class="overlay" id="ayar-modal">
@@ -436,11 +447,20 @@ function gercekModel(m){ // '-latest' alias -> gerçek
   if(/-latest$/.test(m)){ if(/flash-lite/.test(m))return 'gemini-2.5-flash-lite'; if(/flash/.test(m))return 'gemini-2.5-flash'; if(/pro/.test(m))return 'gemini-2.5-pro'; }
   return m;
 }
+async function ensureModels(){
+  if(MODELLER.length || !hasKey()) return;
+  for(const key of RING.keys){ try{ const list=await geminiListModels(key); if(list.length){ MODELLER=list; break; } }catch(e){} }
+}
 async function populateModels(){
-  if(!hasKey()) return;
-  try{ const list=await geminiListModels(RING.keys[0]); if(list.length){ MODELLER=list;
-    const dl=document.getElementById('model-list'); if(dl) dl.innerHTML=list.map(m=>'<option value="'+m+'">').join('');
-  } }catch(e){}
+  await ensureModels();
+  const dl=document.getElementById('model-list'); if(dl && MODELLER.length) dl.innerHTML=MODELLER.map(m=>'<option value="'+m+'">').join('');
+}
+function modelSkor(m){ if(/2\.5-flash-lite/.test(m))return 3; if(/2\.5-flash/.test(m))return 4; if(/2\.0-flash/.test(m))return 2; if(/pro/.test(m))return 1; return 0; }
+function modelSirasi(){
+  const tercih=gercekModel(SETTINGS.model||'gemini-2.5-flash');
+  const kesif=MODELLER.slice().filter(m=>!/pro/i.test(m)).sort((a,b)=>modelSkor(b)-modelSkor(a));
+  const varsayilan=['gemini-2.5-flash','gemini-2.5-flash-lite','gemini-2.0-flash','gemini-flash-latest'];
+  return [tercih].concat(kesif,varsayilan).map(gercekModel).filter((v,i,a)=>v&&a.indexOf(v)===i);
 }
 
 /* ==================== HATA ÇEVİRİCİ (Türkçe) ==================== */
@@ -485,20 +505,22 @@ async function callGeminiRaw(key, model, prompt, system){
 }
 async function callText(prompt, system){
   if(!hasKey()) throw new Error('Anahtar yok');
+  await ensureModels();
   await rlBekle();
-  const model=gercekModel(SETTINGS.model||'gemini-2.5-flash');
-  const modeller=[model,'gemini-2.5-flash','gemini-2.5-flash-lite'].filter((v,i,a)=>a.indexOf(v)===i);
-  let sonHata=null, denenen=0;
+  const modeller=modelSirasi();
+  let sonHata=null, hepsiKota=(RING.keys.length>0);
   for(let k=0;k<RING.keys.length;k++){
-    const key=RING.keys[(RING.i+k)%RING.keys.length];
+    const key=RING.keys[(RING.i+k)%RING.keys.length]; let buAnahtarKota=false;
     for(const m of modeller){
       try{ const r=await callGeminiRaw(key,m,prompt,system); RING.i=(RING.i+k)%RING.keys.length; return r; }
-      catch(e){ sonHata=e; denenen++; const em=String(e.message||'');
-        if(/429|RESOURCE_EXHAUSTED|quota/i.test(em)) break; // bu anahtar dolu, sıradaki anahtara geç
+      catch(e){ sonHata=e; const em=String(e.message||'');
+        if(/429|RESOURCE_EXHAUSTED|quota/i.test(em)){ buAnahtarKota=true; break; } // bu anahtar dolu → sıradaki anahtara
+        // 404 / model yok / boş yanıt / geçici hata → sıradaki modeli dene
       }
     }
+    if(!buAnahtarKota) hepsiKota=false;
   }
-  if(String(sonHata&&sonHata.message).match(/429|quota/i)) throw new Error('TUM_DOLU');
+  if(hepsiKota) throw new Error('TUM_DOLU');
   throw sonHata||new Error('Bilinmeyen hata');
 }
 async function callJSON(prompt, system){
@@ -612,7 +634,7 @@ function profKaydet(){ if(!AKTIF) return; try{ localStorage.setItem(profKey(AKTI
 function yeniProfil(ad,sube){
   const sl=slug(ad);
   return { sl, ad:ad.trim(), sube:(sube||'').trim(), olusturma:new Date().toISOString(),
-    onboarded:false, seviye:{}, saat:'', hedefTur:'', kayitlar:[], denemeler:[], hatalar:{}, hedefOkul:null };
+    onboarded:false, seviye:{}, saat:'', hedefTur:'', kayitlar:[], denemeler:[], hatalar:{}, okunanKonu:{}, hedefOkul:null };
 }
 function girisYap(){
   const ad=(document.getElementById('login-ad').value||'').trim();
@@ -656,6 +678,9 @@ function git(v){
   if(v==='deneme') renderDeneme();
   if(v==='karne') renderKarne();
   if(v==='hedef') renderHedef();
+  if(v==='defter') renderDefter();
+  if(v==='rapor') renderRapor();
+  if(v==='kaynak') renderKaynak();
 }
 
 /* ==================== TANIŞMA / SEVİYE TESTİ ==================== */
@@ -711,6 +736,13 @@ function renderPanel(){
   const fark=puan!=null?(hedef.p-puan):null;
 
   let h='';
+  // LGS geri sayım
+  const kalan=lgsGeriSayim();
+  h+='<div class="card" style="background:linear-gradient(135deg,#b45309,#f59e0b); color:#fff; border:none; display:flex; align-items:center; gap:.8rem; padding:.9rem 1.1rem;">'
+    +'<div style="font-size:2rem;">⏳</div><div style="flex:1;"><div style="font-size:.72rem; font-weight:800; opacity:.9;">LGS 2027\'ye kalan</div><div style="font-size:1.35rem; font-weight:900; line-height:1;">'+kalan+' gün</div></div>'
+    +'<div style="font-size:.7rem; font-weight:800; text-align:right; opacity:.9;">Her gün<br>1 adım 💪</div></div>';
+  // Günün görevi
+  h+=gununGoreviHTML();
   // Hedef kartı
   h+='<div class="card" style="background:linear-gradient(135deg,#0b1e3f,#1e40af); color:#fff; border:none;">'
     +'<div style="display:flex; align-items:center; gap:.8rem;">'
@@ -736,6 +768,11 @@ function renderPanel(){
     +'<span class="smap-lvl" style="background:'+LVL_RENK[g]+'22; color:'+LVL_RENK[g]+'">'+LVL_AD[g]+'</span></div>'; });
   h+='</div>';
 
+  // Net Röntgeni (özgün marjinal analiz)
+  h+=netRontgeniHTML();
+  // Zafer Rozetleri
+  h+=rozetStripHTML();
+
   // Öncelik / takviye
   if(zayif.length){
     h+='<div class="card" style="border:2px solid #fecaca;"><h3 style="color:#b91c1c;"><i class="fas fa-triangle-exclamation"></i> Bu Hafta Öncelik</h3>'
@@ -751,6 +788,8 @@ function renderPanel(){
     +'<div class="row2" style="margin-top:.6rem;">'
     +'<button class="btn btn-ghost" onclick="git(\'karne\')"><i class="fas fa-chart-pie mr-1"></i> Karnem</button>'
     +'<button class="btn btn-ghost" onclick="git(\'hedef\')"><i class="fas fa-bullseye mr-1"></i> Hedefim</button></div>';
+  h+='<button class="btn btn-gold" style="margin-top:.6rem;" onclick="git(\'defter\')"><i class="fas fa-book-bookmark mr-1"></i> Zafer Defterim & Hatalarımdan Deneme</button>';
+  h+='<button class="btn btn-primary" style="margin-top:.6rem;" onclick="git(\'rapor\')"><i class="fas fa-file-signature mr-1"></i> Veli & Müdür Gelişim Raporu</button>';
   h+='<button class="btn btn-ghost" style="margin-top:.6rem;" onclick="seviyeYenile()"><i class="fas fa-rotate mr-1"></i> Seviye testini yeniden yap</button>';
 
   el.innerHTML=h;
@@ -765,25 +804,44 @@ function renderCalis(){
   let h='';
   sirali.forEach(x=>{
     const d=x.d, g=x.g, zayif=g<=2;
+    const ilr=dersIlerleme(d.key);
     h+='<div class="card" id="calis-card-'+d.key+'" style="border-left:5px solid '+d.renk+';">'
       +'<h3>'+d.emoji+' '+d.ad+' <span class="sub" style="color:'+LVL_RENK[g]+';">'+LVL_AD[g]+(zayif?' · takviye 🔴':' 🟢')+'</span></h3>'
-      +'<label class="lbl" style="margin-top:0;">Konu seç:</label>'
+      +'<div style="display:flex; align-items:center; gap:.6rem; margin-bottom:.6rem;">'
+      +'<div class="ring" style="--p:'+ilr.yuzde+'; width:44px; height:44px; background:conic-gradient('+d.renk+' calc(var(--p)*1%),#e2e8f0 0);"><i style="width:32px;height:32px;font-size:.66rem; color:'+d.renk+';">%'+ilr.yuzde+'</i></div>'
+      +'<div style="flex:1; font-size:.76rem; font-weight:800; color:#475569;">'+ilr.okunan+'/'+ilr.toplam+' konu bitti<br><span style="font-weight:700; color:#94a3b8;">Aşağıdan konuları işaretle & izle</span></div></div>'
+      +'<label class="lbl" style="margin-top:0;">Konu seç (AI anlatım / test için):</label>'
       +'<select class="inp" id="konu-'+d.key+'">'+KONULAR[d.key].map(k=>'<option>'+k+'</option>').join('')+'</select>';
     if(zayif){
       h+='<button class="btn btn-emerald" style="margin-top:.7rem;" onclick="aiAnlat(\''+d.key+'\')"><i class="fas fa-wand-magic-sparkles mr-1"></i> AI Destekli Takviye Anlatımı</button>'
-        +'<button class="btn btn-ghost" style="margin-top:.6rem;" onclick="testBaslat(\''+d.key+'\',\'kolay\')"><i class="fas fa-seedling mr-1"></i> Kolay Başlangıç Testi (temel)</button>'
+        +'<div class="row2" style="margin-top:.6rem;"><button class="btn btn-ghost btn-sm" style="width:100%;" onclick="youtubeKonu(\''+d.key+'\')">📺 İzle</button>'
+        +'<button class="btn btn-ghost btn-sm" style="width:100%;" onclick="testBaslat(\''+d.key+'\',\'kolay\')"><i class="fas fa-seedling mr-1"></i> Kolay Test</button></div>'
         +'<button class="btn btn-ghost" style="margin-top:.6rem;" onclick="testBaslat(\''+d.key+'\',\'orta\')"><i class="fas fa-bars mr-1"></i> Orta Seviye Test</button>';
     } else {
       h+='<div class="row3" style="margin-top:.7rem;">'
         +'<button class="btn btn-ghost btn-sm" style="width:100%;" onclick="testBaslat(\''+d.key+'\',\'kolay\')">🟢 Kolay</button>'
         +'<button class="btn btn-ghost btn-sm" style="width:100%;" onclick="testBaslat(\''+d.key+'\',\'orta\')">🟡 Orta</button>'
         +'<button class="btn btn-ghost btn-sm" style="width:100%;" onclick="testBaslat(\''+d.key+'\',\'zor\')">🔴 Zor</button></div>'
-        +'<button class="btn btn-emerald" style="margin-top:.6rem;" onclick="aiAnlat(\''+d.key+'\')"><i class="fas fa-wand-magic-sparkles mr-1"></i> AI Konu Anlatımı</button>';
+        +'<div class="row2" style="margin-top:.6rem;"><button class="btn btn-emerald btn-sm" style="width:100%;" onclick="aiAnlat(\''+d.key+'\')"><i class="fas fa-wand-magic-sparkles mr-1"></i> AI Anlatım</button>'
+        +'<button class="btn btn-ghost btn-sm" style="width:100%;" onclick="youtubeKonu(\''+d.key+'\')">📺 YouTube\'dan İzle</button></div>';
     }
+    // konu checklist (aç/kapa)
+    h+='<button class="btn btn-ghost btn-sm" style="width:100%; margin-top:.6rem;" onclick="konuAc(\''+d.key+'\')"><i class="fas fa-list-check mr-1"></i> Konu Takip Listesi (✓ & izle)</button>'
+      +'<div id="konulist-'+d.key+'" style="display:none; margin-top:.6rem;">'+konuListHTML(d.key)+'</div>';
     h+='<div id="anlat-'+d.key+'" style="margin-top:.8rem;"></div></div>';
   });
   box.innerHTML=h;
 }
+function konuListHTML(dk){
+  const okr=KONU_SET(dk);
+  return KONULAR[dk].map((k,i)=>{ const ok=okr.indexOf(k)!==-1;
+    return '<div style="display:flex; align-items:center; gap:.5rem; padding:.45rem .2rem; border-bottom:1px dashed #e2e8f0;">'
+      +'<button onclick="konuToggle(\''+dk+'\','+i+')" style="flex:0 0 auto; width:1.6rem; height:1.6rem; border-radius:.4rem; border:2px solid '+(ok?'#10b981':'#cbd5e1')+'; background:'+(ok?'#10b981':'#fff')+'; color:#fff; font-weight:900; cursor:pointer; font-size:.8rem;">'+(ok?'✓':'')+'</button>'
+      +'<span style="flex:1; font-size:.82rem; font-weight:700; color:'+(ok?'#94a3b8':'#1e293b')+'; '+(ok?'text-decoration:line-through;':'')+'">'+k+'</span>'
+      +'<button onclick="youtubeAra(\'LGS '+DERS[dk].ad+' '+k.replace(/'/g,"")+' konu anlatımı\')" style="flex:0 0 auto; background:#fef2f2; color:#dc2626; border:none; border-radius:.5rem; padding:.3rem .5rem; font-weight:800; font-size:.72rem; cursor:pointer;">📺 İzle</button></div>';
+  }).join('');
+}
+function konuAc(dk){ const el=document.getElementById('konulist-'+dk); el.style.display=el.style.display==='none'?'block':'none'; }
 async function aiAnlat(dk){
   if(!requireKey()) return;
   const d=DERS[dk], konu=document.getElementById('konu-'+dk).value, g=dersGuc(dk);
@@ -815,7 +873,9 @@ async function testBaslat(dk, zorluk){
 function quizGoster(){
   const v=document.getElementById('view-quiz'); const q=QUIZ.list[QUIZ.i]; if(!q){ quizBitir(); return; }
   const pct=Math.round(QUIZ.i/QUIZ.list.length*100);
-  let h='<div class="card"><div style="display:flex; justify-content:space-between; font-size:.78rem; font-weight:900; color:#64748b; margin-bottom:.5rem;"><span>'+DERS[QUIZ.ders].emoji+' '+DERS[QUIZ.ders].ad+'</span><span>Soru '+(QUIZ.i+1)+'/'+QUIZ.list.length+'</span></div>'
+  const dref=DERS[q.ders]||DERS[QUIZ.ders];
+  const baslik = QUIZ.kisisel ? '🎯 Kişisel Tekrar'+(dref?(' · '+dref.emoji+' '+dref.ad):'') : (DERS[QUIZ.ders].emoji+' '+DERS[QUIZ.ders].ad);
+  let h='<div class="card"><div style="display:flex; justify-content:space-between; font-size:.78rem; font-weight:900; color:#64748b; margin-bottom:.5rem;"><span>'+baslik+'</span><span>Soru '+(QUIZ.i+1)+'/'+QUIZ.list.length+'</span></div>'
     +'<div class="progress-bg"><div class="progress-fill" style="width:'+pct+'%"></div></div>'
     +'<div class="q-card"><div class="q-text">'+q.q+'</div><div id="opts">';
   q.secenekler.slice(0,4).forEach((o,i)=>{ h+='<button class="opt" onclick="quizCevap('+i+')"><div class="lt">'+String.fromCharCode(65+i)+'</div><div class="ot">'+o+'</div></button>'; });
@@ -825,7 +885,7 @@ function quizGoster(){
 function quizCevap(i){
   const q=QUIZ.list[QUIZ.i]; const opts=document.querySelectorAll('#opts .opt'); opts.forEach(o=>o.onclick=null);
   const dogru=q.dogru; opts[dogru]&&opts[dogru].classList.add('correct');
-  if(i!==dogru){ opts[i]&&opts[i].classList.add('wrong'); hataEkle(QUIZ.ders,QUIZ.konu,q,i); } else QUIZ.dogru++;
+  if(i!==dogru){ opts[i]&&opts[i].classList.add('wrong'); hataEkle(q.ders||QUIZ.ders,q.konu||QUIZ.konu,q,i); } else QUIZ.dogru++;
   const cb=document.getElementById('cozum-box');
   cb.innerHTML='<div class="cozum"><b>Doğru: '+String.fromCharCode(65+dogru)+'</b> · '+(q.cozum||'')+'</div>'
     +'<button class="btn btn-primary" style="margin-top:.7rem;" onclick="quizSonraki()">'+(QUIZ.i+1<QUIZ.list.length?'Sonraki Soru →':'Testi Bitir ✓')+'</button>';
@@ -837,9 +897,9 @@ function quizBitir(){
   v.innerHTML='<div class="card" style="text-align:center;"><div class="big-emoji">'+(pct>=80?'🏆':pct>=50?'👍':'🌱')+'</div>'
     +'<h3 style="justify-content:center;">'+d+' / '+t+' doğru (%'+pct+')</h3>'
     +'<p style="font-weight:700; color:#475569;">'+mesaj+'</p>'
-    +'<div class="row2" style="margin-top:1rem;"><button class="btn btn-ghost" onclick="git(\'calis\')">← Çalışma</button>'
-    +'<button class="btn btn-emerald" onclick="testBaslat(\''+QUIZ.ders+'\',\''+QUIZ.zorluk+'\')">Yeni Test</button></div>'
-    +(Object.keys(AKTIF.hatalar).length?'<button class="btn btn-primary" style="margin-top:.6rem;" onclick="git(\'karne\')">Hata defterime bak</button>':'')+'</div>';
+    +'<div class="row2" style="margin-top:1rem;"><button class="btn btn-ghost" onclick="git(\''+(QUIZ.kisisel?'defter':'calis')+'\')">← '+(QUIZ.kisisel?'Defterim':'Çalışma')+'</button>'
+    +'<button class="btn btn-emerald" onclick="'+(QUIZ.kisisel?'kisiselTestBaslat()':('testBaslat(\''+QUIZ.ders+'\',\''+QUIZ.zorluk+'\')'))+'">Yeni Test</button></div>'
+    +(Object.keys(AKTIF.hatalar).length?'<button class="btn btn-primary" style="margin-top:.6rem;" onclick="git(\'defter\')"><i class="fas fa-book-bookmark mr-1"></i> Zafer Defterime bak</button>':'')+'</div>';
   profKaydet();
 }
 function hataEkle(dk,konu,q,secilen){
@@ -964,7 +1024,8 @@ function renderKarne(){
     h+='<div class="card"><h3><i class="fas fa-list"></i> Tüm Kayıtlar ('+k.length+')</h3>';
     k.slice().reverse().forEach((x,ri)=>{ const idx=k.length-1-ri; const t=KAYIT_TUR.find(tt=>tt[0]===x.tur)||KAYIT_TUR[0]; const d=DERS[x.ders];
       h+='<div style="display:flex; align-items:center; gap:.6rem; padding:.55rem .2rem; border-bottom:1px dashed #e2e8f0;"><span class="pill-tag" style="background:'+t[2]+'22; color:'+t[2]+';">'+t[1]+'</span><span style="flex:1; font-weight:800; font-size:.84rem;">'+d.emoji+' '+d.ad+'</span><span style="font-weight:900; font-size:1rem; color:'+(x.not>=50?'#059669':'#dc2626')+';">'+x.not+'</span><button class="mini-x" style="background:#fee2e2; color:#b91c1c; border:none; width:1.7rem; height:1.7rem; border-radius:50%; font-weight:900; cursor:pointer;" onclick="kayitSil('+idx+')">×</button></div>'; });
-    h+='<button class="btn btn-ghost" style="margin-top:.8rem;" onclick="window.print()"><i class="fas fa-print mr-1"></i> Karneyi Yazdır / PDF</button></div>';
+    h+='<button class="btn btn-primary" style="margin-top:.8rem;" onclick="git(\'rapor\')"><i class="fas fa-file-signature mr-1"></i> AI Veli & Müdür Raporu Oluştur</button>';
+    h+='<button class="btn btn-ghost" style="margin-top:.6rem;" onclick="window.print()"><i class="fas fa-print mr-1"></i> Karneyi Yazdır / PDF</button></div>';
   } else {
     h+='<div class="card" style="text-align:center; color:#94a3b8;"><div class="big-emoji">📋</div><p style="font-weight:700;">Henüz kayıt yok. Yukarıdan ilk notunu ekle; grafiklerin otomatik oluşsun.</p></div>';
   }
@@ -1015,6 +1076,273 @@ function okulListele(puan){
   box.innerHTML=h;
 }
 function hedefSec(idx){ AKTIF.hedefOkul=BEY_OKULLAR[idx]; profKaydet(); renderHedef(); }
+
+/* ==================== LGS GERİ SAYIM ==================== */
+const ZAFER_TARIH='2027-06-06'; // LGS 2027 tahmini (Haziran ilk pazarı) — MEB kesinleştirince güncellenir
+function lgsGeriSayim(){ const h=new Date(); h.setHours(0,0,0,0); const s=new Date(ZAFER_TARIH+'T00:00:00'); return Math.max(0,Math.round((s-h)/864e5)); }
+
+/* ==================== NET RÖNTGENİ (marjinal analiz — özgün) ==================== */
+function netRontgeniHTML(){
+  const puan=guncelPuan();
+  const hedef=AKTIF.hedefOkul || BEY_OKULLAR.find(o=>o.tur===(AKTIF.hedefTur||'fen')) || BEY_OKULLAR[0];
+  // her dersin +1 net getirisi = puan formülü katsayısı
+  const sirali=DERSLER.map(d=>({d,kat:PUAN_KAT[d.key],g:dersGuc(d.key)})).sort((a,b)=>b.kat-a.kat);
+  let h='<div class="card"><h3><i class="fas fa-magnifying-glass-chart"></i> Net Röntgeni <span class="sub">+1 net kaç puan?</span></h3>'
+    +'<p style="font-size:.8rem; font-weight:700; color:#64748b; margin:0 0 .7rem; line-height:1.5;">Her dersten <b>1 net</b> daha yaparsan puanın şu kadar artar. Yüksek katsayılı derslere yüklenmek en kârlısıdır:</p>';
+  sirali.forEach(x=>{ const w=Math.round(x.kat/PUAN_KAT.tur*100); const zayif=x.g<=2;
+    h+='<div class="smap-row"><div class="smap-ad" style="width:7.5rem;">'+x.d.emoji+' '+x.d.ad.split(' ')[0]+(zayif?' <span style="color:#ef4444">🔴</span>':'')+'</div>'
+      +'<div class="smap-bar"><div class="smap-fill" style="width:'+w+'%; background:'+x.d.renk+'"></div></div>'
+      +'<span class="smap-lvl" style="background:'+x.d.renk+'22; color:'+x.d.renk+'; min-width:3.4rem; text-align:center;">+'+x.kat.toFixed(2)+'</span></div>'; });
+  if(puan!=null && hedef.p>puan){ const fark=hedef.p-puan;
+    const enIyi=sirali.find(x=>x.g<=2)||sirali[0];
+    h+='<div class="banko" style="margin-bottom:0;">🎯 Hedefin <b>'+hedef.ad.split('(')[0].trim()+'</b> için <b>'+fark.toFixed(1)+' puan</b> lazım. En hızlı yol: <b>'+enIyi.d.ad+'</b>\'ten ~<b>'+Math.ceil(fark/enIyi.kat)+' net</b> daha. Yaparsın! 💪</div>'; }
+  else if(puan!=null){ h+='<div class="tip-box" style="margin-bottom:0;">🎉 Şu an hedef okulunun üstündesin. Şimdi hedefi bir üst okula taşımanın tam zamanı!</div>'; }
+  h+='</div>';
+  return h;
+}
+
+/* ==================== ZAFER ROZETLERİ (gamification — özgün) ==================== */
+function rozetHesap(){
+  const dn=AKTIF.denemeler, kayit=AKTIF.kayitlar, hataTop=Object.values(AKTIF.hatalar).reduce((a,b)=>a+b.length,0);
+  const artis = dn.length>=2 ? (dn[dn.length-1].puan - dn[0].puan) : 0;
+  const enYuksek = dn.length ? Math.max(...dn.map(d=>d.puan)) : 0;
+  const cozulmus = (AKTIF.rozetMeta&&AKTIF.rozetMeta.cozulen)||0;
+  return [
+    {e:'🚀', ad:'İlk Adım', ac:dn.length>=1, ipucu:'İlk denemeni gir'},
+    {e:'📈', ad:'Yükseliş', ac:artis>=15, ipucu:'İlk denemene göre +15 puan'},
+    {e:'🔥', ad:'Seri Çözücü', ac:dn.length>=5, ipucu:'5 deneme tamamla'},
+    {e:'🎯', ad:'Nişancı', ac:enYuksek>=400, ipucu:'400+ puana ulaş'},
+    {e:'💎', ad:'Elmas Puan', ac:enYuksek>=450, ipucu:'450+ puana ulaş'},
+    {e:'📝', ad:'Çalışkan', ac:kayit.length>=10, ipucu:'Karneye 10 not ekle'},
+    {e:'🩹', ad:'Hata Avcısı', ac:hataTop>=10, ipucu:'10 hatayı deftere al'},
+    {e:'🧠', ad:'Tekrar Ustası', ac:cozulmus>=15, ipucu:'Kişisel testte 15 soru çöz'}
+  ];
+}
+function rozetStripHTML(){
+  const r=rozetHesap(); const acik=r.filter(x=>x.ac).length;
+  return '<div class="card"><h3><i class="fas fa-medal"></i> Zafer Rozetlerin <span class="sub">'+acik+'/'+r.length+'</span></h3>'
+    +'<div style="display:flex; flex-wrap:wrap; gap:.5rem;">'
+    +r.map(x=>'<div title="'+(x.ac?x.ad:x.ipucu)+'" style="width:3.4rem; text-align:center;"><div style="font-size:1.7rem; filter:'+(x.ac?'none':'grayscale(1)')+'; opacity:'+(x.ac?'1':'.35')+';">'+x.e+'</div><div style="font-size:.58rem; font-weight:800; color:'+(x.ac?'#059669':'#94a3b8')+'; line-height:1.1; margin-top:.1rem;">'+x.ad+'</div></div>').join('')
+    +'</div></div>';
+}
+
+/* ==================== DEFTERİM (Zafer Defteri) ==================== */
+let HATA_FILTRE='hepsi';
+function renderDefter(){
+  const el=document.getElementById('view-defter'); const ad=AKTIF.ad.split(' ')[0];
+  const hataTop=Object.values(AKTIF.hatalar).reduce((a,b)=>a+b.length,0);
+  let h='<div class="card" style="background:linear-gradient(135deg,#7f1d1d,#b91c1c); color:#fff; border:none;">'
+    +'<h3 style="color:#fff;"><i class="fas fa-book-bookmark"></i> '+ad+'\'in Zafer Defteri</h3>'
+    +'<p style="font-weight:700; font-size:.85rem; opacity:.95; margin:0; line-height:1.5;">Yaptığın her yanlış buraya düşer. Buradan <b>sana özel bir deneme</b> üretiyorum: yalnızca <b>senin zorlandığın</b> konulardan yeni sorular. Bu, hiçbir hazır sistemde yok. 🎯</p></div>';
+
+  // Kişisel deneme — HEADLINE
+  h+='<div class="card" style="border:2px solid #10b981;">'
+    +'<h3 style="color:#065f46;"><i class="fas fa-wand-magic-sparkles"></i> Bana Özel Deneme Üret</h3>'
+    +'<p style="font-size:.85rem; font-weight:700; color:#475569; margin:0 0 .8rem; line-height:1.55;">Yapay zekâ; <b>hata defterindeki konuları</b> ve <b>denemelerinde zayıf kaldığın dersleri</b> baz alıp sana <b>yepyeni</b> bir tekrar denemesi hazırlar. Aynı tuzağa iki kez düşmezsin.</p>'
+    +'<button class="btn btn-emerald" onclick="kisiselTestBaslat()"><i class="fas fa-rocket mr-1"></i> Hatalarımdan Deneme Oluştur</button>'
+    +'<div style="font-size:.72rem; font-weight:700; color:#94a3b8; margin-top:.6rem; text-align:center;">'+(hataTop?('Şu an defterinde '+hataTop+' hata var.'):'Henüz hata yok — yine de en zayıf derslerinden test üretebilirim.')+'</div>'
+    +'</div>';
+
+  // Rozetler
+  h+=rozetStripHTML();
+
+  // Hata defteri
+  h+='<div class="card"><h3><i class="fas fa-clipboard-list"></i> Hata Defteri <span class="sub">'+hataTop+' hata</span></h3>';
+  // elle hata ekleme (anahtarsız)
+  h+='<details style="margin-bottom:.8rem;"><summary style="font-weight:800; font-size:.82rem; color:#2563eb; cursor:pointer;">➕ Elle hata ekle (kitaptan / MEB sorusundan / okuldan)</summary>'
+    +'<div style="margin-top:.6rem; background:#f8fafc; padding:.7rem; border-radius:.8rem;">'
+    +'<select class="inp" id="he-ders" style="margin-bottom:.4rem;">'+DERSLER.map(d=>'<option value="'+d.key+'">'+d.emoji+' '+d.ad+'</option>').join('')+'</select>'
+    +'<input class="inp" id="he-konu" placeholder="Konu (örn. Üslü İfadeler)" style="margin-bottom:.4rem;">'
+    +'<input class="inp" id="he-soru" placeholder="Hata / soru — nerede yanıldın?" style="margin-bottom:.4rem;">'
+    +'<input class="inp" id="he-dogru" placeholder="Doğrusu / notun (opsiyonel)" style="margin-bottom:.5rem;">'
+    +'<button class="btn btn-emerald btn-sm" style="width:100%;" onclick="hataElleEkle()">Deftere Ekle</button></div></details>';
+  if(!hataTop){
+    h+='<div style="text-align:center; color:#94a3b8; padding:1rem 0;"><div class="big-emoji">✨</div><p style="font-weight:700;">Defterin tertemiz! Çalışma bölümünde test çözdükçe yanlışların buraya düşer ve tekrar edebilirsin.</p></div>';
+  } else {
+    // filtre çipleri
+    const dersler=Object.keys(AKTIF.hatalar).filter(k=>AKTIF.hatalar[k].length);
+    h+='<div style="display:flex; flex-wrap:wrap; gap:.4rem; margin-bottom:.8rem;">'
+      +'<button class="stu-chip" style="margin:0; '+(HATA_FILTRE==='hepsi'?'border-color:#059669; color:#059669;':'')+'" onclick="hataFiltre(\'hepsi\')">Hepsi ('+hataTop+')</button>'
+      +dersler.map(k=>'<button class="stu-chip" style="margin:0; '+(HATA_FILTRE===k?'border-color:'+DERS[k].renk+'; color:'+DERS[k].renk+';':'')+'" onclick="hataFiltre(\''+k+'\')">'+DERS[k].emoji+' '+DERS[k].ad.split(' ')[0]+' ('+AKTIF.hatalar[k].length+')</button>').join('')
+      +'</div>';
+    const goster = HATA_FILTRE==='hepsi'?dersler:[HATA_FILTRE].filter(k=>AKTIF.hatalar[k]);
+    goster.forEach(k=>{ const d=DERS[k];
+      AKTIF.hatalar[k].slice().reverse().forEach((x,ri)=>{ const idx=AKTIF.hatalar[k].length-1-ri;
+        h+='<div style="background:#f8fafc; border-left:4px solid '+d.renk+'; border-radius:0 .8rem .8rem 0; padding:.7rem .8rem; margin-bottom:.6rem;">'
+          +'<div style="display:flex; align-items:center; gap:.4rem; margin-bottom:.3rem;"><span class="pill-tag" style="background:'+d.renk+'22; color:'+d.renk+';">'+d.emoji+' '+d.ad.split(' ')[0]+'</span><span style="font-size:.68rem; font-weight:700; color:#94a3b8;">'+(x.konu||'')+'</span>'
+          +'<button class="mini-x" style="margin-left:auto; background:#fee2e2; color:#b91c1c; border:none; width:1.6rem; height:1.6rem; border-radius:50%; font-weight:900; cursor:pointer;" onclick="hataSil(\''+k+'\','+idx+')">×</button></div>'
+          +'<div style="font-size:.85rem; font-weight:700; color:#1e293b; line-height:1.4;">'+x.q+'</div>'
+          +'<div style="font-size:.8rem; font-weight:800; color:#047857; margin-top:.4rem;">✓ Doğru: '+x.dogru+'</div>'
+          +(x.cozum?'<div style="font-size:.76rem; font-weight:600; color:#64748b; margin-top:.2rem; line-height:1.4;">'+x.cozum+'</div>':'')
+          +'</div>';
+      });
+    });
+    h+='<button class="btn btn-ghost" style="margin-top:.5rem;" onclick="hataTemizle()"><i class="fas fa-trash mr-1"></i> Defteri Temizle</button>';
+  }
+  h+='</div>';
+  el.innerHTML=h;
+}
+function hataFiltre(k){ HATA_FILTRE=k; renderDefter(); }
+function hataSil(k,i){ AKTIF.hatalar[k].splice(i,1); if(!AKTIF.hatalar[k].length) delete AKTIF.hatalar[k]; profKaydet(); renderDefter(); }
+function hataTemizle(){ if(!confirm('Tüm hata defteri silinsin mi?')) return; AKTIF.hatalar={}; HATA_FILTRE='hepsi'; profKaydet(); renderDefter(); }
+
+/* ==================== KİŞİSEL DENEME (hatalardan + zayıf denemelerden) ==================== */
+async function kisiselTestBaslat(){
+  if(!requireKey()) return;
+  gorunum('quiz');
+  const v=document.getElementById('view-quiz');
+  v.innerHTML='<div class="card" style="text-align:center;"><div class="big-emoji">🎯</div><h3 style="justify-content:center;">Sana Özel Deneme</h3><p style="font-weight:700; color:#64748b;">Hatalarından ve zayıf derslerinden yeni sorular hazırlanıyor...</p><div class="typing" style="justify-content:center;"><span></span><span></span><span></span></div></div>';
+  // 1) hata defterindeki konular (ders -> konu sayısı)
+  const hedefKonular={}; // dk -> Set(konu)
+  Object.keys(AKTIF.hatalar).forEach(dk=>{ AKTIF.hatalar[dk].forEach(x=>{ (hedefKonular[dk]=hedefKonular[dk]||new Set()).add(x.konu||''); }); });
+  // 2) son denemede zayıf dersler
+  const sonD=AKTIF.denemeler[AKTIF.denemeler.length-1];
+  if(sonD){ DERSLER.forEach(d=>{ const oran=(sonD.netler[d.key]||0)/d.soru; if(oran<0.5){ hedefKonular[d.key]=hedefKonular[d.key]||new Set(); } }); }
+  // 3) hiç veri yoksa onboarding'e göre en zayıf 3 ders
+  if(!Object.keys(hedefKonular).length){ DERSLER.map(d=>({d,g:dersGuc(d.key)})).sort((a,b)=>a.g-b.g).slice(0,3).forEach(x=>{ hedefKonular[x.d.key]=new Set((KONULAR[x.d.key]||[]).slice(0,2)); }); }
+  // dağılım metni
+  const parcalar=Object.keys(hedefKonular).map(dk=>{ const ks=[...hedefKonular[dk]].filter(Boolean); return DERS[dk].ad+(ks.length?(' ('+ks.slice(0,4).join(', ')+')'):''); });
+  const dersSayi=Object.keys(hedefKonular).length;
+  const perDers=Math.max(1,Math.round(10/dersSayi));
+  const sys='Sen LGS (8. sınıf) sorusu yazan uzman öğretmensin. Sorular MEB müfredatına uygun, 4 şıklı (A-D), tek doğru cevaplı. Her soruya konunun dersini "ders" alanı olarak ekle (şu kısaltmalardan: tur, mat, fen, ink, din, ing). Çıktın SADECE JSON.';
+  const konuKeys='('+DERSLER.map(d=>d.key+'='+d.ad).join(', ')+')';
+  try{
+    const arr=await callJSON('Öğrencinin ZORLANDIĞI şu ders/konulardan toplam ~10 YENİ LGS sorusu üret (her dersten ~'+perDers+'): '+parcalar.join(' | ')+'. Ders kısaltmaları: '+konuKeys+'. Sorular defterindekilerin AYNISI olmasın; aynı kazanımı ölçen taze sorular olsun; zorluk kolay-orta. Format: [{"q":"...","secenekler":["A","B","C","D"],"dogru":0,"cozum":"...","ders":"mat","konu":"..."}].', sys);
+    if(!Array.isArray(arr)||!arr.length) throw new Error('Bos yanit');
+    const list=arr.filter(x=>x&&x.q&&Array.isArray(x.secenekler)&&x.secenekler.length>=4);
+    QUIZ={ list, i:0, dogru:0, ders:(list[0]&&list[0].ders)||'tur', konu:'Kişisel Tekrar', zorluk:'kisisel', kisisel:true };
+    // rozet meta: çözülen soru sayısı
+    AKTIF.rozetMeta=AKTIF.rozetMeta||{cozulen:0}; AKTIF.rozetMeta.cozulen+=list.length; profKaydet();
+    quizGoster();
+  }catch(e){ v.innerHTML='<div class="card"><div class="warn-box">'+hataCevir(e)+'</div><button class="btn btn-ghost" onclick="git(\'defter\')">← Defterim</button> <button class="btn btn-emerald" style="margin-top:.5rem;" onclick="kisiselTestBaslat()">Tekrar Dene</button></div>'; }
+}
+
+/* ==================== VELİ & MÜDÜR RAPORU (AI — reklam gücü) ==================== */
+function renderRapor(){
+  const el=document.getElementById('view-rapor'); const ad=AKTIF.ad;
+  const puan=guncelPuan();
+  let h='<div class="card" style="background:linear-gradient(135deg,#0b1e3f,#1e40af); color:#fff; border:none;"><h3 style="color:#fff;"><i class="fas fa-file-signature"></i> Veli & Müdür Gelişim Raporu</h3>'
+    +'<p style="font-weight:700; font-size:.85rem; opacity:.95; margin:0; line-height:1.5;">'+ad.split(' ')[0]+'\'in tüm verileri (denemeler, ders güç haritası, hata dağılımı, karne, hedef okul) tek tıkla <b>profesyonel bir gelişim raporuna</b> dönüşür. Yazdır, veliyle paylaş.</p></div>';
+  // özet kutu
+  h+='<div class="card"><h3><i class="fas fa-table-list"></i> Özet Tablo</h3><table class="dtab"><tr><th>Gösterge</th><th>Değer</th></tr>'
+    +'<tr><td>Öğrenci</td><td>'+ad+(AKTIF.sube?(' · '+AKTIF.sube):'')+'</td></tr>'
+    +'<tr><td>Girilen deneme</td><td>'+AKTIF.denemeler.length+'</td></tr>'
+    +'<tr><td>Tahmini LGS puanı</td><td>'+(puan!=null?puan.toFixed(1):'—')+'</td></tr>'
+    +'<tr><td>Karne kaydı</td><td>'+AKTIF.kayitlar.length+'</td></tr>'
+    +'<tr><td>Deftere alınan hata</td><td>'+Object.values(AKTIF.hatalar).reduce((a,b)=>a+b.length,0)+'</td></tr>'
+    +'<tr><td>LGS 2027\'ye kalan</td><td>'+lgsGeriSayim()+' gün</td></tr>'
+    +'</table></div>';
+  h+='<button class="btn btn-gold" onclick="veliRaporUret()"><i class="fas fa-wand-magic-sparkles mr-1"></i> AI ile Profesyonel Rapor Yaz</button>';
+  h+='<div id="rapor-cikti" style="margin-top:1rem;"></div>';
+  el.innerHTML=h;
+}
+async function veliRaporUret(){
+  if(!requireKey()) return;
+  const box=document.getElementById('rapor-cikti'); box.innerHTML='<div class="typing"><span></span><span></span><span></span></div>';
+  const puan=guncelPuan();
+  const dn=AKTIF.denemeler;
+  const trend = dn.length>=2 ? (dn[dn.length-1].puan-dn[0].puan) : 0;
+  const guc=DERSLER.map(d=>({ad:d.ad,g:dersGuc(d.key)}));
+  const guclu=guc.filter(x=>x.g>=3).map(x=>x.ad), zayif=guc.filter(x=>x.g<=2).map(x=>x.ad);
+  const hedef=AKTIF.hedefOkul || BEY_OKULLAR.find(o=>o.tur===(AKTIF.hedefTur||'fen')) || BEY_OKULLAR[0];
+  const hataDers=Object.keys(AKTIF.hatalar).map(k=>DERS[k].ad+': '+AKTIF.hatalar[k].length).join(', ');
+  const karneOrt = AKTIF.kayitlar.length? Math.round(AKTIF.kayitlar.reduce((a,x)=>a+x.not,0)/AKTIF.kayitlar.length):null;
+  const veri='Öğrenci: '+AKTIF.ad+(AKTIF.sube?(' ('+AKTIF.sube+')'):'')+'. '
+    +'Deneme sayısı: '+dn.length+'. '+(puan!=null?('Son tahmini LGS puanı: '+puan.toFixed(1)+'. '):'')
+    +(dn.length>=2?('Puan değişimi (ilk→son): '+(trend>=0?'+':'')+trend.toFixed(1)+'. '):'')
+    +'Güçlü dersler: '+(guclu.join(', ')||'—')+'. Geliştirilecek dersler: '+(zayif.join(', ')||'—')+'. '
+    +(hataDers?('Hata dağılımı: '+hataDers+'. '):'')
+    +(karneOrt!=null?('Karne ortalaması: '+karneOrt+'. '):'')
+    +'Hedef okul: '+hedef.ad+' (2026 taban '+hedef.p.toFixed(1)+'). LGS 2027\'ye kalan gün: '+lgsGeriSayim()+'.';
+  const sys='Sen Değişim Koleji\'nin deneyimli LGS rehber öğretmenisin. Veliye ve okul müdürüne sunulacak, RESMİ ama sıcak, profesyonel bir gelişim raporu yaz. Abartma, sadece verilen verilere dayan, uydurma. Türkçe.';
+  try{
+    const t=await callText('Aşağıdaki verilerle öğrenci için profesyonel bir GELİŞİM RAPORU yaz. Yapı: <h4>Genel Değerlendirme</h4> (2-3 cümle), <h4>Güçlü Yönler</h4>, <h4>Gelişim Alanları</h4>, <h4>Hedef Okul Analizi</h4> (mevcut puan-hedef farkı, gerçekçi ama motive edici), <h4>Önümüzdeki Dönem İçin Öneriler</h4> (veliye ve öğrenciye somut 3-4 madde), <h4>Öğretmen Notu</h4> (kısa, içten kapanış). Sonuna imza satırı: "Değişim Koleji Rehberlik Servisi". \n\nVERİLER: '+veri+RICH, sys);
+    box.innerHTML='<div class="ai-wrap">'+aiToolbar()+'<div class="ai-body"><div class="content-html" id="rapor-html" style="text-align:left">'+t+'</div></div></div>'
+      +'<button class="btn btn-primary" style="margin-top:.8rem;" onclick="window.print()"><i class="fas fa-print mr-1"></i> Raporu Yazdır / PDF</button>';
+    discGoster();
+  }catch(e){ box.innerHTML='<div class="warn-box">'+hataCevir(e)+'</div>'; }
+}
+
+/* ==================== KONU TAKİP (kazanım kapatma) ==================== */
+function KONU_SET(dk){ if(!AKTIF.okunanKonu) AKTIF.okunanKonu={}; return AKTIF.okunanKonu[dk]||[]; }
+function KONU_SAVE(dk,arr){ if(!AKTIF.okunanKonu) AKTIF.okunanKonu={}; AKTIF.okunanKonu[dk]=arr; profKaydet(); }
+function konuToggle(dk,i){
+  const k=KONULAR[dk][i]; let arr=KONU_SET(dk).slice(); const idx=arr.indexOf(k);
+  if(idx===-1) arr.push(k); else arr.splice(idx,1);
+  KONU_SAVE(dk,arr);
+  const el=document.getElementById('konulist-'+dk); if(el) el.innerHTML=konuListHTML(dk);
+  // ring güncelle
+  const ilr=dersIlerleme(dk); const card=document.getElementById('calis-card-'+dk);
+  if(card){ const ring=card.querySelector('.ring'); if(ring){ ring.style.setProperty('--p',ilr.yuzde); const ii=ring.querySelector('i'); if(ii) ii.textContent='%'+ilr.yuzde; } }
+}
+function dersIlerleme(dk){ const t=KONULAR[dk].length, o=KONU_SET(dk).filter(k=>KONULAR[dk].indexOf(k)!==-1).length; return { toplam:t, okunan:o, yuzde:t?Math.round(o/t*100):0 }; }
+function toplamIlerleme(){ let t=0,o=0; DERSLER.forEach(d=>{ const i=dersIlerleme(d.key); t+=i.toplam; o+=i.okunan; }); return { toplam:t, okunan:o, yuzde:t?Math.round(o/t*100):0 }; }
+
+/* ==================== YOUTUBE / KAYNAK BAĞLANTILARI ==================== */
+function acLink(url){ try{ window.open(url,'_blank','noopener'); }catch(e){ location.href=url; } }
+function youtubeAra(sorgu){ acLink('https://www.youtube.com/results?search_query='+encodeURIComponent(sorgu)); }
+function youtubeKonu(dk){ const konu=document.getElementById('konu-'+dk)?document.getElementById('konu-'+dk).value:''; youtubeAra('LGS '+DERS[dk].ad+' '+konu+' konu anlatımı'); }
+
+/* Resmî MEB / ücretsiz kaynak listesi (doğrulanmış bağlantılar) */
+const MEB_ARAC=[
+  {ad:'MEBİ — Bireysel Öğrenme Platformu', ac:'MEB\'in resmî platformu: konu anlatım videoları, çözümlü sorular, denemeler, çıkmış sorular.', url:'https://mebi.meb.gov.tr', ikon:'🧠', renk:'#059669'},
+  {ad:'MEB Örnek Sorular (ÖDSGM)', ac:'Her ay yayımlanan resmî LGS örnek soruları ve çözümleri (PDF).', url:'https://odsgm.meb.gov.tr/www/ornek-sorular/icerik/1011', ikon:'📄', renk:'#2563eb'},
+  {ad:'EBA — Eğitim Bilişim Ağı', ac:'MEB\'in ücretsiz ders içerikleri, testler ve videolar.', url:'https://www.eba.gov.tr', ikon:'📚', renk:'#7c3aed'},
+  {ad:'ÖDSGM Çözüm Videoları (YouTube)', ac:'Resmî örnek soruların adım adım çözüm videoları.', url:'https://www.youtube.com/results?search_query=%C3%96DSGM+LGS+%C3%B6rnek+soru+%C3%A7%C3%B6z%C3%BCm', ikon:'▶️', renk:'#dc2626'},
+  {ad:'e-Okul (Veli Bilgilendirme)', ac:'Not, devamsızlık ve karne takibi — veliler için.', url:'https://e-okul.meb.gov.tr', ikon:'🏫', renk:'#ea580c'}
+];
+
+/* ==================== KAYNAKLAR MERKEZİ ==================== */
+function renderKaynak(){
+  const el=document.getElementById('view-kaynak');
+  let h='<div class="card" style="background:linear-gradient(135deg,#0b1e3f,#12306b); color:#fff; border:none;"><h3 style="color:#fff;"><i class="fas fa-toolbox"></i> Kaynak & Araç Merkezi</h3><p style="font-weight:700; font-size:.85rem; opacity:.95; margin:0; line-height:1.5;">LGS\'yi kazanmak için ihtiyacın olan <b>ücretsiz ve resmî</b> her şey tek yerde. Tıkla, anında aç. 🚀</p></div>';
+  // MEB resmî
+  h+='<div class="card"><h3><i class="fas fa-landmark"></i> Resmî MEB Araçları</h3>';
+  MEB_ARAC.forEach(a=>{ h+='<div onclick="acLink(\''+a.url+'\')" style="display:flex; align-items:center; gap:.7rem; padding:.7rem .8rem; border-radius:.9rem; margin-bottom:.5rem; background:#f8fafc; border-left:5px solid '+a.renk+'; cursor:pointer;">'
+    +'<div style="font-size:1.5rem;">'+a.ikon+'</div><div style="flex:1;"><div style="font-weight:900; font-size:.86rem; color:#1e293b;">'+a.ad+'</div><div style="font-size:.72rem; font-weight:600; color:#64748b; line-height:1.35;">'+a.ac+'</div></div><i class="fas fa-arrow-up-right-from-square" style="color:#94a3b8;"></i></div>'; });
+  h+='</div>';
+  // ücretsiz YouTube dersleri (derse göre)
+  h+='<div class="card"><h3><i class="fab fa-youtube" style="color:#dc2626;"></i> Ücretsiz Ders Videoları</h3><p style="font-size:.8rem; font-weight:700; color:#64748b; margin:0 0 .7rem;">Derse dokun → YouTube\'da o dersin en iyi ücretsiz LGS konu anlatımları anında açılır.</p><div class="row2">';
+  DERSLER.forEach(d=>{ h+='<button class="btn btn-ghost btn-sm" style="width:100%; text-align:left; border-left:4px solid '+d.renk+';" onclick="youtubeAra(\'LGS '+d.ad+' konu anlatımı 2026\')">'+d.emoji+' '+d.ad+'</button>'; });
+  h+='</div><button class="btn btn-ghost" style="margin-top:.6rem;" onclick="youtubeAra(\'LGS deneme çözümü yeni nesil sorular\')">🎬 Yeni Nesil Soru Çözümleri</button></div>';
+  // Pomodoro odak zamanlayıcı
+  h+='<div class="card" style="text-align:center;"><h3 style="justify-content:center;"><i class="fas fa-hourglass-half"></i> Odak Zamanlayıcı (Pomodoro)</h3>'
+    +'<p style="font-size:.8rem; font-weight:700; color:#64748b; margin:0 0 .6rem;">25 dakika kesintisiz çalış, 5 dakika mola. Odaklanmanın en bilimsel yolu.</p>'
+    +'<div id="pomo-ekran" style="font-size:3rem; font-weight:900; color:#0b1e3f; letter-spacing:2px;">25:00</div>'
+    +'<div id="pomo-durum" style="font-size:.8rem; font-weight:800; color:#059669; margin-bottom:.6rem;">Çalışma turu</div>'
+    +'<div class="row3"><button class="btn btn-emerald btn-sm" style="width:100%;" onclick="pomoBaslat()">▶ Başlat</button><button class="btn btn-ghost btn-sm" style="width:100%;" onclick="pomoDur()">⏸ Duraklat</button><button class="btn btn-ghost btn-sm" style="width:100%;" onclick="pomoSifirla()">↺ Sıfırla</button></div></div>';
+  el.innerHTML=h;
+}
+
+/* ==================== POMODORO ==================== */
+let POMO={ kalan:1500, calisiyor:false, mola:false, timer:null };
+function pomoYaz(){ const m=Math.floor(POMO.kalan/60), s=POMO.kalan%60; const e=document.getElementById('pomo-ekran'); if(e) e.textContent=(m<10?'0':'')+m+':'+(s<10?'0':'')+s; }
+function pomoBaslat(){ if(POMO.calisiyor) return; POMO.calisiyor=true; POMO.timer=setInterval(()=>{ POMO.kalan--; if(POMO.kalan<=0){ clearInterval(POMO.timer); POMO.calisiyor=false; POMO.mola=!POMO.mola; POMO.kalan=POMO.mola?300:1500; const d=document.getElementById('pomo-durum'); if(d){ d.textContent=POMO.mola?'☕ Mola zamanı':'Çalışma turu'; d.style.color=POMO.mola?'#f59e0b':'#059669'; } try{ new Audio('data:audio/wav;base64,UklGRl9vAAA=').play(); }catch(_){}; alert(POMO.mola?'Süre doldu! 5 dakika mola ver ☕':'Mola bitti! Yeni tura hazır mısın? 💪'); } pomoYaz(); },1000); }
+function pomoDur(){ POMO.calisiyor=false; clearInterval(POMO.timer); }
+function pomoSifirla(){ POMO.calisiyor=false; clearInterval(POMO.timer); POMO.mola=false; POMO.kalan=1500; const d=document.getElementById('pomo-durum'); if(d){ d.textContent='Çalışma turu'; d.style.color='#059669'; } pomoYaz(); }
+
+/* ==================== GÜNÜN GÖREVİ (offline akıllı öneri) ==================== */
+function gununGoreviHTML(){
+  // en zayıf ders + okunmamış ilk konu
+  const sirali=DERSLER.map(d=>({d,g:dersGuc(d.key)})).sort((a,b)=>a.g-b.g);
+  const hedefDers=sirali[0].d;
+  const okunmamis=KONULAR[hedefDers.key].find(k=>KONU_SET(hedefDers.key).indexOf(k)===-1) || KONULAR[hedefDers.key][0];
+  return '<div class="card" style="border:2px dashed #10b981;"><h3 style="color:#065f46;"><i class="fas fa-star"></i> Günün Görevi</h3>'
+    +'<p style="font-size:.9rem; font-weight:800; color:#1e293b; margin:0 0 .3rem;">'+hedefDers.emoji+' '+hedefDers.ad+' → <span style="color:#059669;">'+okunmamis+'</span></p>'
+    +'<p style="font-size:.78rem; font-weight:700; color:#64748b; margin:0 0 .7rem; line-height:1.5;">Bugün bu konuyu izle, 25 dk çalış, sonra kısa bir test çöz. Küçük adımlar seni zirveye taşır.</p>'
+    +'<div class="row3"><button class="btn btn-ghost btn-sm" style="width:100%;" onclick="youtubeAra(\'LGS '+hedefDers.ad+' '+okunmamis.replace(/\x27/g,"")+' konu anlatımı\')">📺 İzle</button>'
+    +'<button class="btn btn-ghost btn-sm" style="width:100%;" onclick="calisDers(\''+hedefDers.key+'\')">📖 Çalış</button>'
+    +'<button class="btn btn-ghost btn-sm" style="width:100%;" onclick="git(\'kaynak\')">🧰 Araçlar</button></div></div>';
+}
+
+/* ==================== ELLE HATA EKLEME (anahtarsız) ==================== */
+function hataElleEkle(){
+  const dk=document.getElementById('he-ders').value, konu=document.getElementById('he-konu').value.trim(), soru=document.getElementById('he-soru').value.trim(), dogru=document.getElementById('he-dogru').value.trim();
+  if(!soru){ alert('En azından hatanı/soruyu kısaca yaz.'); return; }
+  if(!AKTIF.hatalar[dk]) AKTIF.hatalar[dk]=[];
+  AKTIF.hatalar[dk].push({ konu:konu||'Elle eklendi', q:soru, dogru:dogru||'(not düşülmedi)', cozum:'', tarih:new Date().toISOString(), elle:true });
+  profKaydet(); renderDefter();
+}
 
 /* ==================== BAŞLAT ==================== */
 window.onload=function(){
