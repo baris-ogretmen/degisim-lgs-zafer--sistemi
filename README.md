@@ -1,0 +1,1 @@
+# degisim-lgs-zafer--sistemi
