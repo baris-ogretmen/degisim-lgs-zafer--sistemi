@@ -9,6 +9,7 @@
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
 :root{ --navy:#0b1e3f; --navy2:#12306b; --emerald:#059669; --emerald2:#10b981; --gold:#f59e0b; --gold2:#fbbf24; --bg:#f1f5f9; --text:#0f172a; --muted:#64748b; }
@@ -343,10 +344,10 @@ body.has-disc .qr-fab{ bottom:calc(4.4rem + env(safe-area-inset-bottom)); }
   <div class="modal">
     <h2><i class="fas fa-user-shield"></i> Merkezi Yönetim <button class="mclose" onclick="merkezKapat()">×</button></h2>
     <div id="merkez-giris">
-      <p style="font-size:.82rem; font-weight:700; color:#64748b; line-height:1.5;">Bu bölüm yalnızca yöneticiye açıktır. Yönetici şifreni gir.</p>
-      <input type="password" class="inp" id="merkez-sifre" placeholder="Yönetici şifresi" onkeydown="if(event.key==='Enter')merkezGiris()">
-      <button class="btn btn-primary" style="margin-top:.7rem;" onclick="merkezGiris()">Giriş</button>
-      <div id="merkez-hata" style="color:#dc2626; font-weight:800; font-size:.8rem; margin-top:.5rem;"></div>
+      <p style="font-size:.82rem; font-weight:700; color:#64748b; line-height:1.5;">Bu bölüm yalnızca yöneticiye açıktır. Yönetici Google (Gmail) hesabınla giriş yap.</p>
+      <button class="btn btn-primary" onclick="merkezGoogleGiris()"><i class="fab fa-google mr-1"></i> Google ile Giriş Yap</button>
+      <div id="merkez-hata" style="color:#dc2626; font-weight:800; font-size:.8rem; margin-top:.6rem;"></div>
+      <div class="hint" style="margin-top:.6rem;">İlk kurulumda yetkili e-posta henüz tanımlı değilse, giriş yapan ilk hesap yönetici olarak Firebase'e kaydedilir. Sonrasında sadece o hesap girebilir.</div>
     </div>
     <div id="merkez-panel" style="display:none;">
       <div class="tip-box" style="margin:.2rem 0 1rem;">🔑 <b>Ortak AI Anahtarı:</b> Buraya bir Gemini anahtarı yapıştırıp kaydedersen, Firebase'e yazılır ve <b>tüm öğrenci/veli/öğretmende AI otomatik açılır</b> — kimsenin kendi anahtarını girmesine gerek kalmaz.</div>
@@ -443,10 +444,9 @@ const FIREBASE_CONFIG = {
   appId: "1:519295049418:web:7d04e18c4ea36bc088de33",
   measurementId: "G-10ENZQDXK1"
 };
-/* Yönetici şifresi — sadece Merkezi Yönetim panelini açar. Barış istediğinde bu satırdan değiştirir. */
-const USTA_SIFRE = "degisim2026";
+/* Yönetici, Firebase'de saklanan yoneticiMail ile belirlenir; kodda şifre/e-posta yok. */
 let FBDB=null;
-let MERKEZ={ anahtar:'', wa:'', duyuru:'' };
+let MERKEZ={ anahtar:'', wa:'', duyuru:'', mail:'' };
 
 /* ==================== LGS DERSLERİ ==================== */
 const DERSLER = [
@@ -542,7 +542,7 @@ async function merkezYukle(){
   try{
     const doc=await FBDB.collection('merkez').doc('ayarlar').get();
     if(doc.exists){ const d=doc.data()||{};
-      MERKEZ.wa=d.waNumara||''; MERKEZ.duyuru=d.duyuru||'';
+      MERKEZ.wa=d.waNumara||''; MERKEZ.duyuru=d.duyuru||''; MERKEZ.mail=d.yoneticiMail||'';
       if(d.ortakAnahtar){ MERKEZ.anahtar=d.ortakAnahtar;
         // ortak anahtarı halkaya ekle (kullanıcı kendi anahtarını girmese de AI açılsın)
         if(RING.keys.indexOf(d.ortakAnahtar)===-1){ RING.keys.push(d.ortakAnahtar); SETTINGS.keys=RING.keys; }
@@ -1779,15 +1779,42 @@ function whatsappIste(){
   if(no){ acLink('https://wa.me/'+no+'?text='+mesaj); }
   else { acLink('https://wa.me/?text='+mesaj); }
 }
-function merkezAc(){ document.getElementById('merkez-modal').classList.add('open'); document.getElementById('merkez-giris').style.display='block'; document.getElementById('merkez-panel').style.display='none'; document.getElementById('merkez-sifre').value=''; document.getElementById('merkez-hata').innerHTML=''; }
+function merkezAc(){ document.getElementById('merkez-modal').classList.add('open'); document.getElementById('merkez-giris').style.display='block'; document.getElementById('merkez-panel').style.display='none'; document.getElementById('merkez-hata').innerHTML=''; }
 function merkezKapat(){ document.getElementById('merkez-modal').classList.remove('open'); }
-function merkezGiris(){
-  const s=document.getElementById('merkez-sifre').value;
-  if(s!==USTA_SIFRE){ document.getElementById('merkez-hata').innerHTML='Şifre yanlış.'; return; }
+function merkezPanelAc(){
   document.getElementById('merkez-giris').style.display='none';
   document.getElementById('merkez-panel').style.display='block';
   document.getElementById('merkez-anahtar').value=MERKEZ.anahtar||'';
   document.getElementById('merkez-wa').value=MERKEZ.wa||'';
+}
+async function merkezGoogleGiris(){
+  const hata=document.getElementById('merkez-hata'); hata.innerHTML='';
+  if(!FBDB && !fbInit()){ hata.innerHTML='Firebase bağlanamadı. İnternet bağlantını kontrol et.'; return; }
+  let auth; try{ auth=firebase.auth(); }catch(e){ hata.innerHTML='Auth başlatılamadı.'; return; }
+  try{
+    const prov=new firebase.auth.GoogleAuthProvider();
+    const sonuc=await auth.signInWithPopup(prov);
+    const mail=(sonuc.user&&sonuc.user.email||'').toLowerCase();
+    if(!mail){ hata.innerHTML='E-posta alınamadı.'; return; }
+    // Firestore'daki yetkili e-posta ile karşılaştır; yoksa ilk giren yönetici olur
+    let yonetici=(MERKEZ.mail||'').toLowerCase();
+    if(!yonetici){
+      try{ const doc=await FBDB.collection('merkez').doc('ayarlar').get(); if(doc.exists) yonetici=((doc.data()||{}).yoneticiMail||'').toLowerCase(); }catch(e){}
+    }
+    if(!yonetici){
+      // ilk kurulum: bu hesabı yönetici olarak kaydet
+      try{ await FBDB.collection('merkez').doc('ayarlar').set({ yoneticiMail:mail },{merge:true}); MERKEZ.mail=mail; }catch(e){ hata.innerHTML='Yönetici kaydedilemedi: '+(e.message||''); return; }
+      merkezPanelAc(); return;
+    }
+    if(mail!==yonetici){ hata.innerHTML='Bu hesap yetkili değil ('+mail+'). Yalnızca yönetici girebilir.'; try{ await auth.signOut(); }catch(e){} return; }
+    MERKEZ.mail=mail; merkezPanelAc();
+  }catch(e){
+    const m=String(e&&e.message||e);
+    if(/popup|cancel|closed/i.test(m)) hata.innerHTML='Giriş penceresi kapandı. Tekrar dene.';
+    else if(/auth\/operation-not-allowed|configuration/i.test(m)) hata.innerHTML='Google girişi Firebase\'de etkin değil. Firebase Console → Authentication → Sign-in method → Google\'ı aç.';
+    else if(/unauthorized-domain/i.test(m)) hata.innerHTML='Bu alan adı Firebase\'de yetkili değil. Console → Authentication → Settings → Authorized domains\'e sitenin adresini ekle.';
+    else hata.innerHTML='Giriş başarısız: '+m.slice(0,80);
+  }
 }
 async function merkezYapistir(){
   try{ const t=await navigator.clipboard.readText(); if(t) document.getElementById('merkez-anahtar').value=t.trim(); }
