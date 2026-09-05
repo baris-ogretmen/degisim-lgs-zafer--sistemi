@@ -9,7 +9,6 @@
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
 :root{ --navy:#0b1e3f; --navy2:#12306b; --emerald:#059669; --emerald2:#10b981; --gold:#f59e0b; --gold2:#fbbf24; --bg:#f1f5f9; --text:#0f172a; --muted:#64748b; }
@@ -342,24 +341,45 @@ body.has-disc .qr-fab{ bottom:calc(4.4rem + env(safe-area-inset-bottom)); }
 <!-- ================= MERKEZİ YÖNETİM (Yönetici) MODAL ================= -->
 <div class="overlay" id="merkez-modal">
   <div class="modal">
-    <h2><i class="fas fa-user-shield"></i> Merkezi Yönetim <button class="mclose" onclick="merkezKapat()">×</button></h2>
+    <h2><i class="fas fa-shield-halved"></i> Merkezi Yönetim <button class="mclose" onclick="merkezKapat()">×</button></h2>
     <div id="merkez-giris">
-      <p style="font-size:.82rem; font-weight:700; color:#64748b; line-height:1.5;">Bu bölüm yalnızca yöneticiye açıktır. Yönetici Google (Gmail) hesabınla giriş yap.</p>
-      <button class="btn btn-primary" onclick="merkezGoogleGiris()"><i class="fab fa-google mr-1"></i> Google ile Giriş Yap</button>
-      <div id="merkez-hata" style="color:#dc2626; font-weight:800; font-size:.8rem; margin-top:.6rem;"></div>
-      <div class="hint" style="margin-top:.6rem;">İlk kurulumda yetkili e-posta henüz tanımlı değilse, giriş yapan ilk hesap yönetici olarak Firebase'e kaydedilir. Sonrasında sadece o hesap girebilir.</div>
+      <p style="font-size:.82rem; font-weight:700; color:#64748b; line-height:1.5;">Bu bölüm yalnızca yöneticiye açıktır. Yönetici şifreni gir.</p>
+      <input type="password" class="inp" id="merkez-sifre" placeholder="Yönetici şifresi" onkeydown="if(event.key==='Enter')merkezGiris()">
+      <button class="btn btn-primary" style="margin-top:.7rem;" onclick="merkezGiris()">Giriş</button>
+      <div id="merkez-hata" style="color:#dc2626; font-weight:800; font-size:.8rem; margin-top:.5rem;"></div>
     </div>
     <div id="merkez-panel" style="display:none;">
-      <div class="tip-box" style="margin:.2rem 0 1rem;">🔑 <b>Ortak AI Anahtarı:</b> Buraya bir Gemini anahtarı yapıştırıp kaydedersen, Firebase'e yazılır ve <b>tüm öğrenci/veli/öğretmende AI otomatik açılır</b> — kimsenin kendi anahtarını girmesine gerek kalmaz.</div>
-      <label class="lbl" style="margin-top:0;">Ortak AI Anahtarı (Gemini)</label>
-      <textarea class="inp" id="merkez-anahtar" rows="2" placeholder="AIza..." style="resize:vertical; font-size:.82rem;"></textarea>
-      <button class="btn btn-ghost btn-sm" style="width:100%; margin-top:.4rem;" onclick="merkezYapistir()"><i class="fas fa-paste mr-1"></i> Panodan Yapıştır</button>
-      <label class="lbl">Destek / Anahtar için WhatsApp numarası</label>
+      <div class="warn-box" style="margin:.2rem 0 1rem;"><i class="fas fa-user-shield"></i> <b>Kurucu yetkisi aktif</b><br>Giriş: ☁️ <span id="merkez-kimlik">Yönetici</span><br>Buradaki ayarlar <b>tüm cihazlara (bulut)</b> uygulanır.</div>
+      <label class="lbl" style="margin-top:0;">🗓️ Eğitim-Öğretim Yılı</label>
+      <input type="text" class="inp" id="merkez-yil" placeholder="2025-2026">
+      <label class="lbl">🔑 Ortak AI Anahtarı Havuzu <span style="color:#059669;">(HERKESTE ÇALIŞIR)</span></label>
+      <div class="hint" style="margin-bottom:.4rem;">Buraya anahtar(lar) ekleyip <b>Kaydet & Yayınla</b> dersen tüm veli/öğrenci/öğretmende AI açılır — kimsenin kendi anahtarını girmesine gerek kalmaz. En fazla <b>1000</b> anahtar; kotalar birleşir, biri dolunca diğerine geçilir.</div>
+      <textarea class="inp" id="merkez-anahtar" rows="4" placeholder="Ekle... (her satıra bir anahtar)" style="resize:vertical; font-size:.82rem;" oninput="merkezSayac()"></textarea>
+      <div class="row3" style="margin-top:.5rem;">
+        <button class="btn btn-ghost btn-sm" style="width:100%;" onclick="merkezKopyala()">📋 Tümünü Kopyala</button>
+        <button class="btn btn-ghost btn-sm" style="width:100%;" onclick="merkezYapistir()">📥 Panodan Yapıştır</button>
+        <button class="btn btn-ghost btn-sm" style="width:100%; color:#dc2626;" onclick="merkezHepsiSil()">🗑️ Hepsini Sil</button>
+      </div>
+      <div id="merkez-sayac" style="font-size:.78rem; font-weight:900; color:#334155; margin-top:.6rem;">Havuzda 0 / 1000 anahtar</div>
+      <label class="lbl">📱 Destek / Anahtar için WhatsApp numarası</label>
       <input type="text" class="inp" id="merkez-wa" placeholder="905xxxxxxxxx (başında 90)">
       <div class="hint">Öğrenci/veli “WhatsApp'tan iste” dediğinde bu numaraya mesaj açılır.</div>
-      <button class="btn btn-emerald" style="margin-top:1rem;" onclick="merkezYaz()"><i class="fas fa-cloud-arrow-up mr-1"></i> Kaydet (Herkese Aç)</button>
+
+      <div style="border-top:1px dashed #cbd5e1; margin:1.1rem 0 .6rem;"></div>
+      <label class="lbl" style="margin-top:0;">🧩 Öğrenci Öğrenme Profilleri <span style="color:#0891b2;">(veli anlatınca buraya yaz)</span></label>
+      <div class="hint" style="margin-bottom:.4rem;">Ad-soyad + öğrenme profili yaz → Kaydet & Yayınla. O öğrenci adını girdiğinde <b>sayfası ve tüm AI içerikleri</b> otomatik ona göre kişiselleşir (görsel mi anlıyor, neyle motive oluyor, nerede zorlanıyor, veli ne demiş...).</div>
+      <input type="text" class="inp" id="ogr-ad" placeholder="Ad Soyad (örn. Selman Yılmaz)" style="margin-bottom:.4rem;">
+      <textarea class="inp" id="ogr-profil" rows="3" placeholder="Örn: Futbolu ve uzayı sever. Görselle/örnekle iyi anlar, uzun metinde sıkılır. Rekabet ve rozet motive eder. Matematikte işlem hatası yapar. Veli: 'evde sabırlı anlatım işe yarıyor' dedi." style="resize:vertical;"></textarea>
+      <button class="btn btn-ghost btn-sm" style="width:100%; margin-top:.4rem; background:#ecfeff; color:#0e7490; border-color:#a5f3fc;" onclick="ogrProfilEkle()"><i class="fas fa-user-plus mr-1"></i> Öğrenciyi Ekle / Güncelle</button>
+      <div id="ogr-liste" style="margin-top:.6rem;"></div>
+
+      <div style="margin-top:.9rem; font-size:.82rem; font-weight:800;">
+        <div style="margin-bottom:.5rem;">▶️ <span id="merkez-fb" style="color:#2563eb;">☁️ Bulut Senkron (Firebase) kontrol ediliyor…</span></div>
+        <div style="cursor:pointer; color:#7c3aed;" onclick="merkezSifreDegistir()">▶️ 🔒 Yönetici Şifresini Değiştir</div>
+      </div>
+      <button class="btn btn-emerald" style="margin-top:1rem;" onclick="merkezYaz()"><i class="fas fa-cloud-arrow-up mr-1"></i> Tümünü Kaydet & Yayınla</button>
       <div id="merkez-sonuc" style="margin-top:.8rem; font-weight:800; font-size:.82rem;"></div>
-      <div class="hint" style="margin-top:.8rem;">🔒 Güvenlik: Ortak anahtar Firebase'de saklanır. Gemini anahtarına Google Cloud'dan kısıtlama koyman ve Firestore kurallarını ayarlaman önerilir.</div>
+      <div class="hint" style="margin-top:.8rem;">🔒 Güvenlik: Anahtarlar Firebase'de saklanır. Gemini anahtarlarına Google Cloud'dan kısıtlama koyman ve Firestore kurallarını ayarlaman önerilir.</div>
     </div>
   </div>
 </div>
@@ -444,9 +464,10 @@ const FIREBASE_CONFIG = {
   appId: "1:519295049418:web:7d04e18c4ea36bc088de33",
   measurementId: "G-10ENZQDXK1"
 };
-/* Yönetici, Firebase'de saklanan yoneticiMail ile belirlenir; kodda şifre/e-posta yok. */
+/* Yönetici şifreyle girer (varsayılan aşağıda; panelden değiştirilebilir, buluta yazılır). */
+const VARSAYILAN_SIFRE = "degisim2026";
 let FBDB=null;
-let MERKEZ={ anahtar:'', wa:'', duyuru:'', mail:'' };
+let MERKEZ={ anahtarlar:[], wa:'', duyuru:'', mail:'', sifre:'', yil:'', ogrenciler:{} };
 
 /* ==================== LGS DERSLERİ ==================== */
 const DERSLER = [
@@ -542,26 +563,48 @@ async function merkezYukle(){
   try{
     const doc=await FBDB.collection('merkez').doc('ayarlar').get();
     if(doc.exists){ const d=doc.data()||{};
-      MERKEZ.wa=d.waNumara||''; MERKEZ.duyuru=d.duyuru||''; MERKEZ.mail=d.yoneticiMail||'';
-      if(d.ortakAnahtar){ MERKEZ.anahtar=d.ortakAnahtar;
-        // ortak anahtarı halkaya ekle (kullanıcı kendi anahtarını girmese de AI açılsın)
-        if(RING.keys.indexOf(d.ortakAnahtar)===-1){ RING.keys.push(d.ortakAnahtar); SETTINGS.keys=RING.keys; }
-        updateStatusDot(); populateModels();
-      }
+      MERKEZ.wa=d.waNumara||''; MERKEZ.duyuru=d.duyuru||''; MERKEZ.mail=d.yoneticiMail||''; MERKEZ.sifre=d.yoneticiSifre||''; MERKEZ.yil=d.ogretimYili||'';
+      MERKEZ.ogrenciler=(d.ogrenciler && typeof d.ogrenciler==='object')?d.ogrenciler:{};
+      // havuz: yeni ortakAnahtarlar dizisi + eski tekil ortakAnahtar (geriye dönük)
+      let havuz=[];
+      if(Array.isArray(d.ortakAnahtarlar)) havuz=d.ortakAnahtarlar.slice();
+      if(d.ortakAnahtar) havuz.push(d.ortakAnahtar);
+      havuz=havuz.map(s=>String(s||'').trim()).filter(s=>s.length>10);
+      havuz=havuz.filter((v,i,a)=>a.indexOf(v)===i);
+      MERKEZ.anahtarlar=havuz;
+      let eklendi=false;
+      havuz.forEach(k=>{ if(RING.keys.indexOf(k)===-1){ RING.keys.push(k); eklendi=true; } });
+      if(eklendi){ SETTINGS.keys=RING.keys; updateStatusDot(); populateModels(); }
     }
   }catch(e){}
 }
-async function merkezKaydet(anahtar, wa){
+async function merkezKaydet(payload){
   if(!FBDB){ if(!fbInit()||!FBDB) throw new Error('Firebase bağlanamadı. İnternet ve Firebase ayarlarını kontrol et.'); }
-  await FBDB.collection('merkez').doc('ayarlar').set({ ortakAnahtar:(anahtar||'').trim(), waNumara:(wa||'').trim(), guncelleme:Date.now() }, { merge:true });
-  MERKEZ.anahtar=(anahtar||'').trim(); MERKEZ.wa=(wa||'').trim();
-  if(MERKEZ.anahtar && RING.keys.indexOf(MERKEZ.anahtar)===-1){ RING.keys.push(MERKEZ.anahtar); SETTINGS.keys=RING.keys; updateStatusDot(); populateModels(); }
+  await FBDB.collection('merkez').doc('ayarlar').set(Object.assign({ guncelleme:Date.now() }, payload), { merge:true });
 }
-/* Öğrenme Profili — her AI üretimine otomatik enjekte edilir (tek profil, her yer kişiselleşir) */
+/* Öğrenme Profili — her AI üretimine otomatik enjekte (bulut profili + yerel profil birleşik) */
 function profilEk(){
-  const p=(AKTIF && AKTIF.ogrenmeProfili || '').trim();
+  const bulut=(AKTIF && AKTIF.merkezProfil || '').trim();
+  const yerel=(AKTIF && AKTIF.ogrenmeProfili || '').trim();
+  const p=[bulut,yerel].filter(Boolean).join(' | ');
   if(!p) return '';
-  return '\n\n[ÖĞRENME PROFİLİ — bu öğrenciye göre uyarla] '+p+'\nÖrnekleri, dili ve yaklaşımı bu öğrenciye özel seç: ilgi alanından örnek ver, zorlandığı yerde daha sabırlı ve yavaş anlat, motive olduğu şeyle bağ kur. LGS 8. sınıf formatından ve müfredatından ASLA şaşma.';
+  const ad=(AKTIF&&AKTIF.ad?AKTIF.ad.split(' ')[0]:'öğrenci');
+  return '\n\n[ÖĞRENME PROFİLİ — ZORUNLU KİŞİSELLEŞTİRME] '+ad+' hakkında öğretmenin/velinin verdiği bilgiler: "'+p+'".\n'
+    +'Bu profili ciddiye al ve TÜM içeriği '+ad+'\'e göre uyarla: (1) örnekleri onun ilgi alanından seç; (2) anlatım dilini ve hızını ona göre ayarla (görselse görsel/şema betimle, hızlı kavrıyorsa özü ver, yavaşsa adım adım git); (3) zorlandığı konularda daha çok örnek ve sabır göster; (4) onu motive eden şeye (rozet, rekabet, merak, hikâye vb.) göre teşvik cümleleri kur; (5) velinin söylediklerini dikkate al. Kişiselleştirmeyi doğal yap, "profiline göre" gibi ifadeler kullanma. LGS 8. sınıf müfredatından ve formatından ASLA şaşma; bilgi doğruluğundan ödün verme.';
+}
+/* Bulut öğrenci profilini (veli bilgisi) aktif öğrenciye uygula */
+async function merkezProfilUygula(){
+  if(!AKTIF) return;
+  const sl=AKTIF.sl;
+  let kayit = (MERKEZ.ogrenciler && MERKEZ.ogrenciler[sl]) || null;
+  // bulut henüz yüklenmediyse tazele
+  if(!kayit && FBDB){
+    try{ const doc=await FBDB.collection('merkez').doc('ayarlar').get(); if(doc.exists){ const o=(doc.data()||{}).ogrenciler||{}; MERKEZ.ogrenciler=o; kayit=o[sl]||null; } }catch(e){}
+  }
+  if(kayit){ const profil=(typeof kayit==='string')?kayit:(kayit.profil||''); if(profil && AKTIF.merkezProfil!==profil){ AKTIF.merkezProfil=profil; profKaydet();
+    // panel açıksa yenile
+    const el=document.getElementById('view-panel'); if(el && el.classList.contains('active')) renderPanel();
+  } }
 }
 function anahtarlariAyikla(txt){
   return (txt||'').split(/[\n,;\s]+/).map(s=>s.trim()).filter(s=>s.length>10);
@@ -770,7 +813,7 @@ function profKaydet(){ if(!AKTIF) return; try{ localStorage.setItem(profKey(AKTI
 function yeniProfil(ad,sube){
   const sl=slug(ad);
   return { sl, ad:ad.trim(), sube:(sube||'').trim(), olusturma:new Date().toISOString(),
-    onboarded:false, seviye:{}, saat:'', hedefTur:'', ogrenmeProfili:'', kayitlar:[], denemeler:[], hatalar:{}, okunanKonu:{}, okulKonu:{}, notlar:[], hedefOkul:null };
+    onboarded:false, seviye:{}, saat:'', hedefTur:'', ogrenmeProfili:'', merkezProfil:'', kayitlar:[], denemeler:[], hatalar:{}, okunanKonu:{}, okulKonu:{}, notlar:[], hedefOkul:null };
 }
 function girisYap(){
   const ad=(document.getElementById('login-ad').value||'').trim();
@@ -798,6 +841,7 @@ function acilisAkis(){
   document.getElementById('app-header').classList.remove('hidden');
   document.getElementById('qr-fab').classList.remove('hidden');
   document.getElementById('hero-ad').innerText=AKTIF.ad+(AKTIF.sube?(' · '+AKTIF.sube):'');
+  try{ merkezProfilUygula(); }catch(e){}
   if(!AKTIF.onboarded){ document.getElementById('main-nav').classList.add('hidden'); renderOnboard(); gorunum('onboard'); }
   else { document.getElementById('main-nav').classList.remove('hidden'); git('panel'); }
   window.scrollTo(0,0);
@@ -1779,54 +1823,83 @@ function whatsappIste(){
   if(no){ acLink('https://wa.me/'+no+'?text='+mesaj); }
   else { acLink('https://wa.me/?text='+mesaj); }
 }
-function merkezAc(){ document.getElementById('merkez-modal').classList.add('open'); document.getElementById('merkez-giris').style.display='block'; document.getElementById('merkez-panel').style.display='none'; document.getElementById('merkez-hata').innerHTML=''; }
+function merkezAc(){ document.getElementById('merkez-modal').classList.add('open'); document.getElementById('merkez-giris').style.display='block'; document.getElementById('merkez-panel').style.display='none'; document.getElementById('merkez-sifre').value=''; document.getElementById('merkez-hata').innerHTML=''; }
 function merkezKapat(){ document.getElementById('merkez-modal').classList.remove('open'); }
+function aktifSifre(){ return (MERKEZ.sifre && MERKEZ.sifre.length) ? MERKEZ.sifre : VARSAYILAN_SIFRE; }
+function merkezGiris(){
+  const s=document.getElementById('merkez-sifre').value||'';
+  if(s!==aktifSifre()){ document.getElementById('merkez-hata').innerHTML='Şifre yanlış.'; return; }
+  merkezPanelAc();
+}
 function merkezPanelAc(){
   document.getElementById('merkez-giris').style.display='none';
   document.getElementById('merkez-panel').style.display='block';
-  document.getElementById('merkez-anahtar').value=MERKEZ.anahtar||'';
-  document.getElementById('merkez-wa').value=MERKEZ.wa||'';
+  document.getElementById('merkez-kimlik').innerText = MERKEZ.mail || 'Yönetici';
+  document.getElementById('merkez-yil').value = MERKEZ.yil || '';
+  document.getElementById('merkez-anahtar').value = (MERKEZ.anahtarlar||[]).join('\n');
+  document.getElementById('merkez-wa').value = MERKEZ.wa || '';
+  const fb=document.getElementById('merkez-fb'); if(fb) fb.innerHTML = FBDB ? '☁️ Bulut Senkron (Firebase) ✅ bağlı' : '☁️ Bulut Senkron: ⚠️ bağlı değil (internet?)';
+  ogrProfilListe();
+  merkezSayac();
 }
-async function merkezGoogleGiris(){
-  const hata=document.getElementById('merkez-hata'); hata.innerHTML='';
-  if(!FBDB && !fbInit()){ hata.innerHTML='Firebase bağlanamadı. İnternet bağlantını kontrol et.'; return; }
-  let auth; try{ auth=firebase.auth(); }catch(e){ hata.innerHTML='Auth başlatılamadı.'; return; }
-  try{
-    const prov=new firebase.auth.GoogleAuthProvider();
-    const sonuc=await auth.signInWithPopup(prov);
-    const mail=(sonuc.user&&sonuc.user.email||'').toLowerCase();
-    if(!mail){ hata.innerHTML='E-posta alınamadı.'; return; }
-    // Firestore'daki yetkili e-posta ile karşılaştır; yoksa ilk giren yönetici olur
-    let yonetici=(MERKEZ.mail||'').toLowerCase();
-    if(!yonetici){
-      try{ const doc=await FBDB.collection('merkez').doc('ayarlar').get(); if(doc.exists) yonetici=((doc.data()||{}).yoneticiMail||'').toLowerCase(); }catch(e){}
-    }
-    if(!yonetici){
-      // ilk kurulum: bu hesabı yönetici olarak kaydet
-      try{ await FBDB.collection('merkez').doc('ayarlar').set({ yoneticiMail:mail },{merge:true}); MERKEZ.mail=mail; }catch(e){ hata.innerHTML='Yönetici kaydedilemedi: '+(e.message||''); return; }
-      merkezPanelAc(); return;
-    }
-    if(mail!==yonetici){ hata.innerHTML='Bu hesap yetkili değil ('+mail+'). Yalnızca yönetici girebilir.'; try{ await auth.signOut(); }catch(e){} return; }
-    MERKEZ.mail=mail; merkezPanelAc();
-  }catch(e){
-    const m=String(e&&e.message||e);
-    if(/popup|cancel|closed/i.test(m)) hata.innerHTML='Giriş penceresi kapandı. Tekrar dene.';
-    else if(/auth\/operation-not-allowed|configuration/i.test(m)) hata.innerHTML='Google girişi Firebase\'de etkin değil. Firebase Console → Authentication → Sign-in method → Google\'ı aç.';
-    else if(/unauthorized-domain/i.test(m)) hata.innerHTML='Bu alan adı Firebase\'de yetkili değil. Console → Authentication → Settings → Authorized domains\'e sitenin adresini ekle.';
-    else hata.innerHTML='Giriş başarısız: '+m.slice(0,80);
-  }
+function merkezSayac(){
+  const t=document.getElementById('merkez-anahtar').value||'';
+  const n=anahtarlariAyikla(t).length;
+  const el=document.getElementById('merkez-sayac'); if(el) el.innerHTML='Havuzda <span style="color:'+(n?'#059669':'#94a3b8')+'">'+n+'</span> / 1000 anahtar';
 }
 async function merkezYapistir(){
-  try{ const t=await navigator.clipboard.readText(); if(t) document.getElementById('merkez-anahtar').value=t.trim(); }
-  catch(e){ alert('Panoya erişilemedi. Anahtarı elle yapıştır (uzun bas → Yapıştır).'); }
+  try{ const t=await navigator.clipboard.readText(); if(t){ const cur=document.getElementById('merkez-anahtar'); cur.value=(cur.value?cur.value.replace(/\s*$/,'')+'\n':'')+t.trim(); merkezSayac(); } }
+  catch(e){ alert('Panoya erişilemedi. Anahtarı elle yapıştır (kutuya uzun bas → Yapıştır).'); }
+}
+function merkezKopyala(){ const t=document.getElementById('merkez-anahtar').value||''; navigator.clipboard.writeText(t).then(()=>{ const b=document.getElementById('merkez-sonuc'); b.style.color='#059669'; b.innerHTML='📋 Havuz kopyalandı.'; }).catch(()=>{}); }
+function merkezHepsiSil(){ if(!confirm('Havuzdaki tüm anahtarlar temizlensin mi? (Kaydet & Yayınla demeden buluttan silinmez.)')) return; document.getElementById('merkez-anahtar').value=''; merkezSayac(); }
+function merkezSifreDegistir(){
+  const yeni=prompt('Yeni yönetici şifresi (en az 4 karakter):','');
+  if(yeni===null) return;
+  if((yeni||'').trim().length<4){ alert('Şifre en az 4 karakter olmalı.'); return; }
+  MERKEZ.sifre=yeni.trim();
+  const b=document.getElementById('merkez-sonuc'); b.style.color='#7c3aed'; b.innerHTML='🔒 Yeni şifre hazır — “Tümünü Kaydet & Yayınla” dediğinde buluta yazılır.';
+}
+/* Öğrenci öğrenme profilleri (bulut, ad-soyad bazlı) */
+function ogrProfilEkle(){
+  const ad=(document.getElementById('ogr-ad').value||'').trim();
+  const profil=(document.getElementById('ogr-profil').value||'').trim();
+  if(ad.length<2 || !profil){ alert('Ad Soyad ve profil metnini yaz.'); return; }
+  const sl=slug(ad);
+  if(!MERKEZ.ogrenciler) MERKEZ.ogrenciler={};
+  MERKEZ.ogrenciler[sl]={ ad, profil };
+  document.getElementById('ogr-ad').value=''; document.getElementById('ogr-profil').value='';
+  ogrProfilListe();
+  const b=document.getElementById('merkez-sonuc'); b.style.color='#0e7490'; b.innerHTML='🧩 '+ad+' eklendi — “Tümünü Kaydet & Yayınla” dediğinde buluta yazılır.';
+}
+function ogrProfilDuzenle(sl){ const k=MERKEZ.ogrenciler[sl]; if(!k) return; document.getElementById('ogr-ad').value=k.ad||''; document.getElementById('ogr-profil').value=(typeof k==='string'?k:k.profil)||''; document.getElementById('ogr-ad').scrollIntoView({behavior:'smooth',block:'center'}); }
+function ogrProfilSil(sl){ if(!confirm('Bu öğrenci profili silinsin mi? (Kaydet & Yayınla ile buluttan da silinir.)')) return; delete MERKEZ.ogrenciler[sl]; ogrProfilListe(); }
+function ogrProfilListe(){
+  const box=document.getElementById('ogr-liste'); if(!box) return;
+  const keys=Object.keys(MERKEZ.ogrenciler||{});
+  if(!keys.length){ box.innerHTML='<div style="font-size:.74rem; font-weight:700; color:#94a3b8; text-align:center; padding:.4rem;">Henüz öğrenci profili yok.</div>'; return; }
+  box.innerHTML='<div style="font-size:.72rem; font-weight:900; color:#0e7490; margin-bottom:.3rem;">Kayıtlı profiller ('+keys.length+')</div>'
+    + keys.map(sl=>{ const k=MERKEZ.ogrenciler[sl]; const ad=(typeof k==='string')?sl:(k.ad||sl); const pr=(typeof k==='string')?k:(k.profil||'');
+      return '<div style="display:flex; align-items:center; gap:.5rem; padding:.5rem .6rem; background:#ecfeff; border-radius:.7rem; margin-bottom:.4rem;">'
+        +'<div style="flex:1; min-width:0;"><div style="font-weight:800; font-size:.82rem; color:#0f172a;">'+ad+'</div><div style="font-size:.68rem; font-weight:600; color:#64748b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">'+pr+'</div></div>'
+        +'<button onclick="ogrProfilDuzenle(\''+sl+'\')" style="background:#e0f2fe; color:#0369a1; border:none; border-radius:.5rem; padding:.3rem .5rem; font-weight:800; font-size:.7rem; cursor:pointer;">✏️</button>'
+        +'<button class="mini-x" style="background:#fee2e2; color:#b91c1c; border:none; width:1.6rem; height:1.6rem; border-radius:50%; font-weight:900; cursor:pointer;" onclick="ogrProfilSil(\''+sl+'\')">×</button></div>';
+    }).join('');
 }
 async function merkezYaz(){
-  const anahtar=(document.getElementById('merkez-anahtar').value||'').trim();
+  const havuz=anahtarlariAyikla(document.getElementById('merkez-anahtar').value||'').slice(0,1000);
   const wa=(document.getElementById('merkez-wa').value||'').trim();
+  const yil=(document.getElementById('merkez-yil').value||'').trim();
   const box=document.getElementById('merkez-sonuc'); box.style.color='#64748b'; box.innerHTML='<i class="fas fa-spinner fa-spin mr-1"></i> Firebase\'e kaydediliyor...';
   try{
-    await merkezKaydet(anahtar, wa);
-    box.style.color='#059669'; box.innerHTML='<i class="fas fa-check-circle mr-1"></i> Kaydedildi! Artık tüm öğrenci/veli/öğretmende AI otomatik açık. ✅';
+    const payload={ ortakAnahtarlar:havuz, waNumara:wa, ogretimYili:yil, ogrenciler:MERKEZ.ogrenciler||{}, ortakAnahtar:firebase.firestore.FieldValue.delete() };
+    if(MERKEZ.sifre) payload.yoneticiSifre=MERKEZ.sifre;
+    await merkezKaydet(payload);
+    MERKEZ.anahtarlar=havuz; MERKEZ.wa=wa; MERKEZ.yil=yil;
+    // yeni anahtarları halkaya ekle
+    havuz.forEach(k=>{ if(RING.keys.indexOf(k)===-1) RING.keys.push(k); }); SETTINGS.keys=RING.keys; updateStatusDot(); populateModels();
+    box.style.color='#059669'; box.innerHTML='<i class="fas fa-check-circle mr-1"></i> Yayınlandı! '+havuz.length+' anahtar bulutta. Artık tüm öğrenci/veli/öğretmende AI otomatik açık. ✅';
+    merkezSayac();
   }catch(e){ box.style.color='#dc2626'; box.innerHTML='<i class="fas fa-triangle-exclamation mr-1"></i> '+(e.message||'Kaydedilemedi.'); }
 }
 function profilAc(){ if(!AKTIF) return; document.getElementById('profil-ad').innerText=AKTIF.ad.split(' ')[0]; document.getElementById('profil-metin').value=AKTIF.ogrenmeProfili||''; document.getElementById('profil-modal').classList.add('open'); }
