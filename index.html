@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#0b1e3f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Değişim LGS">
+<link id="apple-icon" rel="apple-touch-icon" href="">
+<link id="manifest-link" rel="manifest" href="">
 <title>Değişim Koleji · LGS Zafer Sistemi</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
@@ -180,11 +186,45 @@ body.has-disc #ekran-pill{ bottom:calc(4.4rem + env(safe-area-inset-bottom)); }
 body.has-disc .qr-fab{ bottom:calc(4.4rem + env(safe-area-inset-bottom)); }
 @media print{ html{ zoom:1 !important; } nav,header .hdr-actions,.ai-disc,.net-toast,#ekran-pill,.qr-fab{ display:none !important; } }
 .pill-tag{ display:inline-block; font-size:.62rem; font-weight:900; padding:.15rem .5rem; border-radius:.5rem; letter-spacing:.3px; }
+
+/* Kavram Haritası */
+.kmap{ background:linear-gradient(135deg,#f8fafc,#eff6ff); border:2px dashed #93c5fd; border-radius:1.1rem; padding:1.1rem .8rem; margin:1rem 0; text-align:center; }
+.kmap-merkez{ display:inline-block; background:linear-gradient(135deg,#1e40af,#3b82f6); color:#fff; font-weight:900; padding:.55rem 1.1rem; border-radius:1rem; margin-bottom:.7rem; box-shadow:0 6px 16px rgba(30,64,175,.3); font-size:.95rem; }
+.kmap-dallar{ display:flex; flex-wrap:wrap; gap:.4rem; justify-content:center; }
+.kmap-dal{ background:#fff; border:2px solid #c7d2fe; color:#3730a3; font-weight:800; padding:.45rem .8rem; border-radius:.9rem; font-size:.82rem; box-shadow:0 3px 8px rgba(0,0,0,.05); }
+.kmap-dal small{ display:block; color:#64748b; font-weight:600; font-size:.66rem; margin-top:.15rem; }
+
+/* Renkli içerik zenginleştirme */
+.content-html h4{ background:linear-gradient(90deg,#eff6ff,transparent); padding:.4rem .6rem; border-left:5px solid #3b82f6; border-radius:.4rem; }
+.content-html h5{ color:#be185d; }
+.hl-y{ background:#fef08a; padding:1px 5px; border-radius:4px; } .hl-g{ background:#bbf7d0; padding:1px 5px; border-radius:4px; } .hl-b{ background:#bfdbfe; padding:1px 5px; border-radius:4px; } .hl-p{ background:#fbcfe8; padding:1px 5px; border-radius:4px; }
+
+/* PDF / yazdırma */
+#pdf-print{ display:none; }
+@media print{
+  body.printing > *{ display:none !important; }
+  body.printing #pdf-print{ display:block !important; position:static; padding:1.5rem; }
+  #pdf-print h1{ color:#0b1e3f; font-size:1.4rem; border-bottom:3px solid #f59e0b; padding-bottom:.4rem; }
+  #pdf-print .content-html{ font-size:12pt; color:#111; }
+  #pdf-print .kmap{ break-inside:avoid; }
+}
 </style>
 </head>
 <body>
 
 <div id="net-toast" class="net-toast off"><i class="fas fa-wifi"></i> <span id="net-toast-text">İnternet kesildi</span></div>
+
+<!-- PDF yazdırma konteyneri -->
+<div id="pdf-print"></div>
+
+<!-- ANA EKRANA EKLE (PWA) MODAL -->
+<div class="overlay" id="pwa-modal">
+  <div class="modal" style="max-width:420px;">
+    <h2><i class="fas fa-mobile-screen-button"></i> Ana Ekrana Ekle <button class="mclose" onclick="pwaKapat()">×</button></h2>
+    <div id="pwa-body" style="font-size:.9rem; font-weight:700; color:#334155; line-height:1.7;"></div>
+    <button class="btn btn-emerald" style="margin-top:1rem;" onclick="pwaKapat()">Tamam</button>
+  </div>
+</div>
 <div id="ekran-pill" style="display:none;" onclick="ZIRVE_ekranTikla(event)" title="Ekran modu"><span id="ekran-label">📺 Oto</span><button class="zx" onclick="ZIRVE_ekranGizle(event)">×</button></div>
 <button class="qr-fab hidden" id="qr-fab" onclick="qrAc()" title="QR ile paylaş"><i class="fas fa-qrcode"></i></button>
 
@@ -335,6 +375,7 @@ body.has-disc .qr-fab{ bottom:calc(4.4rem + env(safe-area-inset-bottom)); }
       <button class="btn btn-emerald btn-sm" id="wa-btn" style="width:100%; margin-top:.7rem; background:#25d366; border:none;" onclick="whatsappIste()"><i class="fab fa-whatsapp mr-1"></i> WhatsApp'tan yardım/anahtar iste</button>
     </details>
     <button class="btn btn-ghost btn-sm" style="width:100%; margin-top:1rem; background:#eef2ff; color:#3730a3; border-color:#c7d2fe;" onclick="merkezAc()"><i class="fas fa-user-shield mr-1"></i> Merkezi Yönetim (Yönetici)</button>
+    <button class="btn btn-ghost btn-sm" style="width:100%; margin-top:.6rem; background:#ecfdf5; color:#047857; border-color:#6ee7b7;" onclick="ZIRVE_anaEkraneEkle()"><i class="fas fa-mobile-screen-button mr-1"></i> Ana Ekrana Uygulama Olarak Ekle</button>
   </div>
 </div>
 
@@ -743,12 +784,22 @@ function duzMetin(html){
   t=t.replace(/^#{1,6}\s*/gm,'').replace(/\*\*(.+?)\*\*/g,'$1').replace(/\*(.+?)\*/g,'$1').replace(/`/g,'');
   return t.replace(/\n{3,}/g,'\n\n').trim();
 }
-function aiToolbar(){ return '<div class="ai-tools"><button onclick="aiKopya(this)">📋 Kopyala</button><button onclick="aiPaylas(this)">📤 Paylaş</button><button onclick="aiSesli(this)">🔊 Dinle</button></div>'; }
+function aiToolbar(){ return '<div class="ai-tools"><button onclick="aiKopya(this)">📋 Kopyala</button><button onclick="aiSesli(this)">🔊 Dinle</button><button onclick="aiPDF(this)">📄 PDF</button><button onclick="aiPaylas(this)">📤 Paylaş</button></div>'; }
+function aiPDF(btn){
+  const icerik=btn.closest('.ai-wrap').querySelector('.ai-body').innerHTML;
+  const ad=(AKTIF&&AKTIF.ad)?AKTIF.ad:'Öğrenci';
+  const pp=document.getElementById('pdf-print');
+  pp.innerHTML='<h1>Değişim Koleji · LGS</h1><div style="font-weight:700;color:#475569;margin-bottom:.8rem;">'+ad+' · '+new Date().toLocaleDateString('tr-TR')+'</div>'+icerik;
+  document.body.classList.add('printing');
+  const bitince=()=>{ document.body.classList.remove('printing'); pp.innerHTML=''; window.removeEventListener('afterprint',bitince); };
+  window.addEventListener('afterprint',bitince);
+  setTimeout(()=>{ try{ window.print(); }catch(e){ bitince(); } }, 120);
+}
 function aiKopya(btn){ const t=duzMetin(btn.closest('.ai-wrap').querySelector('.ai-body').innerHTML); navigator.clipboard.writeText(t).then(()=>{ btn.textContent='✓ Kopyalandı'; setTimeout(()=>btn.textContent='📋 Kopyala',1500); }); }
 function aiPaylas(btn){ const t=duzMetin(btn.closest('.ai-wrap').querySelector('.ai-body').innerHTML); if(navigator.share){ navigator.share({title:'Değişim Koleji LGS', text:t}).catch(()=>{}); } else aiKopya(btn); }
 function aiSesli(btn){ const t=duzMetin(btn.closest('.ai-wrap').querySelector('.ai-body').innerHTML); try{ speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(t); u.lang='tr-TR'; speechSynthesis.speak(u); }catch(e){} }
 function renderAI(box, innerHTML){ box.innerHTML='<div class="ai-wrap">'+aiToolbar()+'<div class="ai-body">'+innerHTML+'</div></div>'; discGoster(); }
-const RICH='\n\nBİÇİM: <b> kalın, <i> italik, <h4> başlık, <ul><li> madde, <table> tablo kullan. Renkli vurgular için <span style="background:#fef08a;padding:0 3px">...</span> kullanabilirsin. Örnekler ver, benzetme kur, akılda kalıcı şifreler üret. Markdown (#,*) ve LaTeX ($,\\frac) ASLA kullanma. Türkçe yaz.';
+const RICH='\n\nBİÇİM (ÇOK RENKLİ, göze hoş, akılda kalıcı olsun): <h4> ana başlık, <h5> alt başlık, <b> kalın, <ul><li> madde, <table> tablo. Renkli vurgu için farklı sınıflar kullan: <span class="hl-y">sarı</span>, <span class="hl-g">yeşil</span>, <span class="hl-b">mavi</span>, <span class="hl-p">pembe</span> (önemli kelimeleri renklendir). İpucu için <div class="tip-box">...</div>, tuzak/uyarı için <div class="warn-box">...</div>, kritik bilgi için <div class="banko">...</div>. Bol emoji kullan; her önemli fikri günlük hayattan bir METAFOR/benzetme ile açıkla; akılda kalıcı kısa şifreler üret. Uygun bir yere KAVRAM HARİTASI ekle: <div class="kmap"><div class="kmap-merkez">Ana Kavram</div><div class="kmap-dallar"><div class="kmap-dal">Dal<small>kısa not</small></div><div class="kmap-dal">Dal 2<small>not</small></div></div></div>. Markdown (#,*) ve LaTeX (dolar, frac) ASLA kullanma. Türkçe yaz.';
 
 /* ==================== AYARLAR MODAL ==================== */
 function ayarAc(){ const m=document.getElementById('ayar-modal'); document.getElementById('ayar-keys').value=(RING.keys||[]).join('\n'); document.getElementById('ayar-model').value=SETTINGS.model||''; document.getElementById('ayar-sonuc').innerHTML=''; document.getElementById('kh-panel').innerHTML=''; m.classList.add('open'); }
@@ -822,6 +873,48 @@ function welcKapat(){ document.getElementById('welc-modal').classList.remove('op
   window.addEventListener('beforeprint',()=>window.ZIRVE_ekranReset()); window.addEventListener('afterprint',()=>window.ZIRVE_ekranGeri());
   let _t; window.addEventListener('resize',()=>{ if(elle)return; let m='auto'; try{m=localStorage.getItem(KEY)||'auto';}catch(e){} if(m==='auto'){ clearTimeout(_t); _t=setTimeout(()=>zoomla('auto'),200); } });
   window.ZIRVE_ekranBaslat=function(){ let m='auto'; try{m=localStorage.getItem(KEY)||'auto';}catch(e){} elle=(m!=='auto'); uygula(m,false); };
+})();
+
+/* ==================== ZİRVE ANA EKRANA EKLE (PWA — Safari zorunlu değil) ==================== */
+(function(){
+  let deferred=null;
+  window.addEventListener('beforeinstallprompt', e=>{ e.preventDefault(); deferred=e; });
+  function standalone(){ try{ return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone===true; }catch(e){ return false; } }
+  function iOS(){ return /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1); }
+  function inApp(){ return /instagram|fbav|fban|line|micromessenger|twitter|snapchat/i.test(navigator.userAgent); }
+  function ikonUret(){
+    try{
+      const c=document.createElement('canvas'); c.width=c.height=180; const x=c.getContext('2d');
+      const g=x.createLinearGradient(0,0,180,180); g.addColorStop(0,'#0b1e3f'); g.addColorStop(1,'#1e40af'); x.fillStyle=g;
+      const r=38; x.beginPath(); x.moveTo(r,0); x.arcTo(180,0,180,180,r); x.arcTo(180,180,0,180,r); x.arcTo(0,180,0,0,r); x.arcTo(0,0,180,0,r); x.closePath(); x.fill();
+      x.fillStyle='#f59e0b'; x.font='900 88px Nunito, Arial, sans-serif'; x.textAlign='center'; x.textBaseline='middle'; x.fillText('DK',90,100);
+      const url=c.toDataURL('image/png');
+      const ai=document.getElementById('apple-icon'); if(ai) ai.href=url;
+      const man={ name:'Değişim Koleji LGS', short_name:'Değişim LGS', start_url:'.', scope:'.', display:'standalone', orientation:'portrait', background_color:'#0b1e3f', theme_color:'#0b1e3f', icons:[{src:url,sizes:'180x180',type:'image/png'},{src:url,sizes:'512x512',type:'image/png'}] };
+      const ml=document.getElementById('manifest-link'); if(ml) ml.href='data:application/manifest+json,'+encodeURIComponent(JSON.stringify(man));
+    }catch(e){}
+  }
+  function modal(){
+    const ios=iOS();
+    let h;
+    if(inApp()){
+      h='<div class="warn-box" style="margin:0 0 .8rem;">Şu an bir uygulamanın içindeki tarayıcıdasın (Instagram/Messenger vb.). Ana ekrana eklemek için önce sağ üstteki menüden <b>“'+(ios?'Safari':'tarayıcıda')+' aç”</b> demelisin.</div>'
+        +(ios?'Sonra: <b>Paylaş <i class="fas fa-arrow-up-from-bracket"></i> → Ana Ekrana Ekle</b>':'Sonra: <b>⋮ menü → Ana ekrana ekle</b>');
+    } else if(ios){
+      h='<b>iPhone / iPad için:</b><br><br>1️⃣ Alttaki <b>Paylaş</b> düğmesine bas <i class="fas fa-arrow-up-from-bracket" style="color:#3b82f6"></i><br>2️⃣ Listeyi kaydır, <b>“Ana Ekrana Ekle”</b>ye dokun ➕<br>3️⃣ Sağ üstte <b>“Ekle”</b> de. Bitti! 🎉<br><br><span style="font-size:.78rem;color:#64748b;">Artık uygulama, ana ekranda kendi simgesiyle (DK) açılır — tıpkı bir uygulama gibi.</span>';
+    } else {
+      h='<b>Android / Chrome için:</b><br><br>1️⃣ Sağ üstte <b>⋮</b> menüye bas<br>2️⃣ <b>“Uygulamayı yükle”</b> ya da <b>“Ana ekrana ekle”</b>ye dokun 🎉';
+    }
+    document.getElementById('pwa-body').innerHTML=h;
+    document.getElementById('pwa-modal').classList.add('open');
+  }
+  window.pwaKapat=function(){ document.getElementById('pwa-modal').classList.remove('open'); };
+  window.ZIRVE_anaEkraneEkle=function(){
+    if(standalone()){ alert('🎉 Uygulama zaten ana ekranında yüklü görünüyor!'); return; }
+    if(deferred){ deferred.prompt(); try{ deferred.userChoice.finally(()=>{ deferred=null; }); }catch(e){ deferred=null; } return; }
+    modal();
+  };
+  window.ZIRVE_pwaBaslat=function(){ ikonUret(); };
 })();
 
 /* ==================== ÖĞRENCİ PROFİLLERİ (isim bazlı) ==================== */
@@ -1035,7 +1128,8 @@ function renderCalis(){
         +'<button class="btn btn-ghost btn-sm" style="width:100%;" onclick="youtubeKonu(\''+d.key+'\')">📺 YouTube\'dan İzle</button></div>';
     }
     // konu checklist (aç/kapa)
-    h+='<button class="btn btn-ghost btn-sm" style="width:100%; margin-top:.6rem;" onclick="konuAc(\''+d.key+'\')"><i class="fas fa-list-check mr-1"></i> Konu Takip Listesi (✓ & izle)</button>'
+    h+='<button class="btn btn-ghost btn-sm" style="width:100%; margin-top:.6rem; background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe;" onclick="kavramHaritasi(\''+d.key+'\')">🗺️ Kavram Haritası Çıkar</button>'
+      +'<button class="btn btn-ghost btn-sm" style="width:100%; margin-top:.6rem;" onclick="konuAc(\''+d.key+'\')"><i class="fas fa-list-check mr-1"></i> Konu Takip Listesi (✓ & izle)</button>'
       +'<div class="row2" style="margin-top:.6rem;"><button class="btn btn-gold btn-sm" style="width:100%;" onclick="bankoBaslat(\''+d.key+'\')">⭐ Çıkabilecek Sorular</button>'
       +'<button class="btn btn-ghost btn-sm" style="width:100%; background:#eef2ff; color:#4338ca; border-color:#c7d2fe;" onclick="hocaKonuAc(\''+d.key+'\')">💬 Hoca ile Konuş</button></div>'
       +'<div id="konulist-'+d.key+'" style="display:none; margin-top:.6rem;">'+konuListHTML(d.key)+'</div>';
@@ -1044,6 +1138,16 @@ function renderCalis(){
   box.innerHTML=h;
 }
 function hocaKonuAc(dk){ const konu=document.getElementById('konu-'+dk)?document.getElementById('konu-'+dk).value:''; hocaAc('konu',{ders:dk,konu}); }
+async function kavramHaritasi(dk){
+  if(!requireKey()) return;
+  const d=DERS[dk], konu=document.getElementById('konu-'+dk)?document.getElementById('konu-'+dk).value:KONULAR[dk][0];
+  const box=document.getElementById('anlat-'+dk); box.innerHTML='<div class="typing"><span></span><span></span><span></span></div>';
+  const sys='Sen LGS öğretmenisin. Bir konunun KAVRAM HARİTASINI çıkarırsın: merkezde ana kavram, çevresinde dallar ve her dalın altında kısa notlar. Renkli, görsel, sade.';
+  try{
+    const t=await callText('LGS '+d.ad+' "'+konu+'" konusunun KAVRAM HARİTASINI çıkar. Önce bir <div class="kmap"> kavram haritası ver (merkez + en az 5 dal, her dalda kısa <small> not). Sonra <h4>Dalların Açıklaması</h4> altında her dalı 1-2 cümleyle, metaforla anlat. Renkli vurgular kullan.'+RICH, sys);
+    renderAI(box,'<div class="content-html">'+t+'</div>');
+  }catch(e){ box.innerHTML='<div class="warn-box">'+hataCevir(e)+'</div>'; }
+}
 function konuListHTML(dk){
   const okr=KONU_SET(dk);
   return KONULAR[dk].map((k,i)=>{ const ok=okr.indexOf(k)!==-1;
@@ -2028,6 +2132,8 @@ window.onload=function(){
   document.getElementById('profil-modal').addEventListener('click', e=>{ if(e.target.id==='profil-modal') profilKapat(); });
   renderStuList();
   try{ ZIRVE_ekranBaslat(); }catch(e){}
+  try{ ZIRVE_pwaBaslat(); }catch(e){}
+  document.getElementById('pwa-modal').addEventListener('click', e=>{ if(e.target.id==='pwa-modal') pwaKapat(); });
   welcGoster();
 };
 </script>
