@@ -370,8 +370,17 @@ body.has-disc .qr-fab{ bottom:calc(4.4rem + env(safe-area-inset-bottom)); }
       <div class="hint" style="margin-bottom:.4rem;">Ad-soyad + öğrenme profili yaz → Kaydet & Yayınla. O öğrenci adını girdiğinde <b>sayfası ve tüm AI içerikleri</b> otomatik ona göre kişiselleşir (görsel mi anlıyor, neyle motive oluyor, nerede zorlanıyor, veli ne demiş...).</div>
       <input type="text" class="inp" id="ogr-ad" placeholder="Ad Soyad (örn. Selman Yılmaz)" style="margin-bottom:.4rem;">
       <textarea class="inp" id="ogr-profil" rows="3" placeholder="Örn: Futbolu ve uzayı sever. Görselle/örnekle iyi anlar, uzun metinde sıkılır. Rekabet ve rozet motive eder. Matematikte işlem hatası yapar. Veli: 'evde sabırlı anlatım işe yarıyor' dedi." style="resize:vertical;"></textarea>
-      <button class="btn btn-ghost btn-sm" style="width:100%; margin-top:.4rem; background:#ecfeff; color:#0e7490; border-color:#a5f3fc;" onclick="ogrProfilEkle()"><i class="fas fa-user-plus mr-1"></i> Öğrenciyi Ekle / Güncelle</button>
+      <div class="row2" style="margin-top:.4rem;">
+        <button class="btn btn-ghost btn-sm" style="width:100%; background:#f5f3ff; color:#6d28d9; border-color:#ddd6fe;" onclick="ogrProfilAiCevir()">🤖 AI ile Prompt'a Çevir</button>
+        <button class="btn btn-ghost btn-sm" style="width:100%; background:#ecfeff; color:#0e7490; border-color:#a5f3fc;" onclick="ogrProfilEkle()"><i class="fas fa-user-plus mr-1"></i> Ekle / Güncelle</button>
+      </div>
       <div id="ogr-liste" style="margin-top:.6rem;"></div>
+
+      <div style="border-top:1px dashed #cbd5e1; margin:1.1rem 0 .6rem;"></div>
+      <label class="lbl" style="margin-top:0;">📥 Gelen Öneriler <span style="color:#dc2626;" id="oneri-rozet"></span></label>
+      <div class="hint" style="margin-bottom:.4rem;">Öğrenci/veli uygulamadan gönderdikçe burada birikir. <b>🤖 AI ile Profile Çevir → ✅ Uygula</b> dersen o öğrencinin profiline işlenir; kodla uğraşmazsın.</div>
+      <button class="btn btn-ghost btn-sm" style="width:100%;" onclick="oneriYukle()"><i class="fas fa-rotate mr-1"></i> Önerileri Yenile</button>
+      <div id="oneri-liste" style="margin-top:.6rem;"></div>
 
       <div style="margin-top:.9rem; font-size:.82rem; font-weight:800;">
         <div style="margin-bottom:.5rem;">▶️ <span id="merkez-fb" style="color:#2563eb;">☁️ Bulut Senkron (Firebase) kontrol ediliyor…</span></div>
@@ -391,6 +400,18 @@ body.has-disc .qr-fab{ bottom:calc(4.4rem + env(safe-area-inset-bottom)); }
     <p style="font-size:.82rem; font-weight:700; color:#64748b; line-height:1.5; margin:0 0 .6rem;"><span id="profil-ad"></span> için serbestçe yaz: ilgi alanı, nasıl daha iyi anlıyor, neyle motive oluyor, nerede zorlanıyor, veli ne demiş... Bu profil <b>her AI üretimine</b> (anlatım, quiz, özel ders, Hoca, kartlar) otomatik katılır; tüm içerik bu çocuğa göre uyarlanır.</p>
     <textarea class="inp" id="profil-metin" rows="6" placeholder="Örn: Selman futbolu ve uzayı çok seviyor. Görsel ve örnekle daha iyi anlıyor, uzun metinde sıkılıyor. Rekabet ve rozet onu motive ediyor. Matematikte işlem hatası yapıyor, okuduğunu anlamada iyi. Velisi 'evde sabırlı anlatım işe yarıyor' dedi." style="resize:vertical;"></textarea>
     <button class="btn btn-emerald" style="margin-top:.8rem;" onclick="profilKaydet()"><i class="fas fa-floppy-disk mr-1"></i> Profili Kaydet</button>
+  </div>
+</div>
+
+<!-- ================= BARIŞ HOCAM'A İSTEK / ÖNERİ MODAL ================= -->
+<div class="overlay" id="oneri-modal">
+  <div class="modal">
+    <h2><i class="fas fa-paper-plane"></i> Barış Hocam'a İstek <button class="mclose" onclick="oneriKapat()">×</button></h2>
+    <p style="font-size:.82rem; font-weight:700; color:#64748b; line-height:1.5; margin:0 0 .6rem;"><span id="oneri-ad"></span> için bir isteğin/önerin mi var? (Örn: "Oğlum görselle daha iyi anlıyor", "Matematikte daha çok soru olsun", "Şu konu eklensin"...) Yaz, Barış Hocam'a ulaşsın; o da sisteme işlesin.</p>
+    <textarea class="inp" id="oneri-metin" rows="4" placeholder="İsteğini/önerini buraya yaz..." style="resize:vertical;"></textarea>
+    <button class="btn btn-emerald" style="margin-top:.8rem;" onclick="oneriGonder()"><i class="fas fa-cloud-arrow-up mr-1"></i> Gönder (uygulama içinden)</button>
+    <button class="btn btn-emerald btn-sm" style="width:100%; margin-top:.6rem; background:#25d366; border:none;" onclick="oneriWhatsapp()"><i class="fab fa-whatsapp mr-1"></i> WhatsApp'tan gönder</button>
+    <div id="oneri-sonuc" style="margin-top:.7rem; font-weight:800; font-size:.82rem;"></div>
   </div>
 </div>
 
@@ -977,6 +998,7 @@ function renderPanel(){
   h+='<button class="btn btn-primary" style="margin-top:.6rem;" onclick="git(\'rapor\')"><i class="fas fa-file-signature mr-1"></i> Veli & Müdür Gelişim Raporu</button>';
   h+='<button class="btn" style="margin-top:.6rem; background:linear-gradient(135deg,#312e81,#6d28d9); color:#fff;" onclick="git(\'notlar\')"><i class="fas fa-pen-to-square mr-1"></i> Not Defterim (AI kavram kartları)</button>';
   h+='<button class="btn" style="margin-top:.6rem; background:linear-gradient(135deg,#0891b2,#06b6d4); color:#fff;" onclick="profilAc()"><i class="fas fa-fingerprint mr-1"></i> Öğrenme Profilim '+(AKTIF.ogrenmeProfili?'✓':'(ekle → AI kişiselleşir)')+'</button>';
+  h+='<button class="btn btn-ghost" style="margin-top:.6rem; background:#f0fdf4; color:#047857; border-color:#6ee7b7;" onclick="oneriAc()"><i class="fas fa-paper-plane mr-1"></i> Barış Hocam\'a İstek / Öneri Gönder</button>';
   h+='<button class="btn btn-ghost" style="margin-top:.6rem;" onclick="seviyeYenile()"><i class="fas fa-rotate mr-1"></i> Seviye testini yeniden yap</button>';
 
   el.innerHTML=h;
@@ -1841,6 +1863,7 @@ function merkezPanelAc(){
   const fb=document.getElementById('merkez-fb'); if(fb) fb.innerHTML = FBDB ? '☁️ Bulut Senkron (Firebase) ✅ bağlı' : '☁️ Bulut Senkron: ⚠️ bağlı değil (internet?)';
   ogrProfilListe();
   merkezSayac();
+  try{ oneriYukle(); }catch(e){}
 }
 function merkezSayac(){
   const t=document.getElementById('merkez-anahtar').value||'';
@@ -1906,6 +1929,92 @@ function profilAc(){ if(!AKTIF) return; document.getElementById('profil-ad').inn
 function profilKapat(){ document.getElementById('profil-modal').classList.remove('open'); }
 function profilKaydet(){ AKTIF.ogrenmeProfili=(document.getElementById('profil-metin').value||'').trim(); profKaydet(); profilKapat(); const el=document.getElementById('view-panel'); if(el && el.classList.contains('active')) renderPanel(); }
 
+/* ==================== ÖNERİ / İSTEK (öğrenci→bulut→yönetici) ==================== */
+let ONERILER=[];
+function oneriAc(){ if(!AKTIF) return; document.getElementById('oneri-ad').innerText=AKTIF.ad.split(' ')[0]; document.getElementById('oneri-metin').value=''; document.getElementById('oneri-sonuc').innerHTML=''; document.getElementById('oneri-modal').classList.add('open'); }
+function oneriKapat(){ document.getElementById('oneri-modal').classList.remove('open'); }
+async function oneriGonder(){
+  const metin=(document.getElementById('oneri-metin').value||'').trim();
+  if(metin.length<3){ document.getElementById('oneri-sonuc').innerHTML='<span style="color:#b45309">Lütfen isteğini yaz.</span>'; return; }
+  const box=document.getElementById('oneri-sonuc'); box.style.color='#64748b'; box.innerHTML='<i class="fas fa-spinner fa-spin mr-1"></i> Gönderiliyor...';
+  if(!FBDB && !fbInit()){ box.innerHTML='<span style="color:#b45309">İnternet/Firebase yok. WhatsApp\'tan gönderebilirsin.</span>'; return; }
+  try{
+    await FBDB.collection('oneriler').add({ ad:AKTIF.ad, sube:AKTIF.sube||'', sl:AKTIF.sl, metin, tarih:Date.now(), durum:'yeni' });
+    box.style.color='#059669'; box.innerHTML='<i class="fas fa-check-circle mr-1"></i> Gönderildi! Barış Hocam en kısa sürede sisteme işleyecek. 🙌';
+    document.getElementById('oneri-metin').value='';
+  }catch(e){ box.style.color='#dc2626'; box.innerHTML='Gönderilemedi: '+(e.message||'').slice(0,60)+'. WhatsApp\'tan dene.'; }
+}
+function oneriWhatsapp(){
+  const metin=(document.getElementById('oneri-metin').value||'').trim();
+  const no=(MERKEZ.wa||'').replace(/[^0-9]/g,'');
+  const mesaj=encodeURIComponent('Barış Hocam merhaba, '+(AKTIF?AKTIF.ad:'')+' için isteğim/önerim: '+metin);
+  acLink((no?('https://wa.me/'+no):'https://wa.me/')+'?text='+mesaj);
+}
+/* Ham metni temiz öğrenme profiline çevir (AI) */
+async function profileMetniUret(ham){
+  const sys='Sen bir eğitim koçusun. Verilen serbest notu (veli/öğrenci isteği) LGS öğrencisi için KISA, NET bir öğrenme profiline çevir. Tek paragraf; ilgi alanı, nasıl daha iyi anlıyor, motive eden şey, zorlandığı yer, veli notu gibi öğeleri doğal cümlelerle topla. Madde işareti kullanma. Sadece profili yaz, başlık/açıklama ekleme.';
+  return await callText('Serbest not: "'+ham+'"\n\nBunu öğrenme profiline çevir.', sys);
+}
+async function ogrProfilAiCevir(){
+  const ham=(document.getElementById('ogr-profil').value||'').trim();
+  if(ham.length<3){ alert('Önce ham metni (velinin dediklerini) yaz.'); return; }
+  if(!requireKey()){ return; }
+  const b=document.getElementById('merkez-sonuc'); b.style.color='#6d28d9'; b.innerHTML='<i class="fas fa-spinner fa-spin mr-1"></i> AI profile çeviriyor...';
+  try{ const t=await profileMetniUret(ham); document.getElementById('ogr-profil').value=duzMetin(t); b.style.color='#059669'; b.innerHTML='✅ Profile çevrildi. Ad Soyad dolu ise “Ekle/Güncelle” de.'; }
+  catch(e){ b.style.color='#dc2626'; b.innerHTML=hataCevir(e); }
+}
+/* Yönetici: gelen önerileri yükle / listele / çevir / uygula / sil */
+async function oneriYukle(){
+  const box=document.getElementById('oneri-liste'); if(!FBDB && !fbInit()){ if(box) box.innerHTML='<div style="font-size:.74rem;color:#b45309;font-weight:700;">Firebase yok.</div>'; return; }
+  if(box) box.innerHTML='<div class="typing"><span></span><span></span><span></span></div>';
+  try{
+    const snap=await FBDB.collection('oneriler').where('durum','==','yeni').limit(50).get();
+    ONERILER=[]; snap.forEach(d=>ONERILER.push(Object.assign({id:d.id}, d.data())));
+    ONERILER.sort((a,b)=>(b.tarih||0)-(a.tarih||0));
+    oneriListe();
+  }catch(e){ if(box) box.innerHTML='<div style="font-size:.74rem;color:#dc2626;font-weight:700;">Yüklenemedi: '+(e.message||'').slice(0,50)+'</div>'; }
+}
+function oneriListe(){
+  const box=document.getElementById('oneri-liste'); const rz=document.getElementById('oneri-rozet');
+  if(rz) rz.textContent=ONERILER.length?('('+ONERILER.length+' yeni)'):'';
+  if(!box) return;
+  if(!ONERILER.length){ box.innerHTML='<div style="font-size:.74rem; font-weight:700; color:#94a3b8; text-align:center; padding:.4rem;">Yeni öneri yok.</div>'; return; }
+  box.innerHTML=ONERILER.map((o,i)=>{
+    return '<div style="background:#fff7ed; border:1px solid #fed7aa; border-radius:.8rem; padding:.7rem; margin-bottom:.6rem;">'
+      +'<div style="font-weight:800; font-size:.82rem; color:#9a3412;">👤 '+(o.ad||'')+(o.sube?(' · '+o.sube):'')+'</div>'
+      +'<div style="font-size:.8rem; font-weight:600; color:#334155; margin:.3rem 0; line-height:1.5;">'+(o.metin||'')+'</div>'
+      +'<textarea class="inp" id="oneri-taslak-'+i+'" rows="2" placeholder="AI ile çevir → burada profil oluşur; düzenleyip Uygula." style="resize:vertical; font-size:.8rem; margin-bottom:.4rem;">'+(o.taslak||'')+'</textarea>'
+      +'<div class="row3"><button class="btn btn-ghost btn-sm" style="width:100%; background:#f5f3ff; color:#6d28d9; border-color:#ddd6fe;" onclick="oneriCevir('+i+')">🤖 AI Çevir</button>'
+      +'<button class="btn btn-emerald btn-sm" style="width:100%;" onclick="oneriUygula('+i+')">✅ Uygula</button>'
+      +'<button class="btn btn-ghost btn-sm" style="width:100%; color:#dc2626;" onclick="oneriSil('+i+')">🗑️ Sil</button></div></div>';
+  }).join('');
+}
+async function oneriCevir(i){
+  const o=ONERILER[i]; if(!o) return; if(!requireKey()) return;
+  const ta=document.getElementById('oneri-taslak-'+i); ta.value='AI çeviriyor...';
+  try{ const t=await profileMetniUret(o.metin||''); o.taslak=duzMetin(t); ta.value=o.taslak; }
+  catch(e){ ta.value=''; alert(hataCevir(e)); }
+}
+async function oneriUygula(i){
+  const o=ONERILER[i]; if(!o) return;
+  const ta=document.getElementById('oneri-taslak-'+i);
+  const profil=((ta&&ta.value)||o.taslak||o.metin||'').trim();
+  if(!profil){ alert('Önce bir profil metni oluştur (AI Çevir) ya da öneriyi yaz.'); return; }
+  if(!MERKEZ.ogrenciler) MERKEZ.ogrenciler={};
+  MERKEZ.ogrenciler[o.sl]={ ad:o.ad, profil };
+  try{
+    await merkezKaydet({ ogrenciler:MERKEZ.ogrenciler });                 // profili buluta işle
+    if(FBDB && o.id){ try{ await FBDB.collection('oneriler').doc(o.id).update({ durum:'uygulandi' }); }catch(e){} }
+    ONERILER.splice(i,1); oneriListe(); ogrProfilListe();
+    const b=document.getElementById('merkez-sonuc'); b.style.color='#059669'; b.innerHTML='✅ '+(o.ad||'Öğrenci')+' profiline işlendi ve yayınlandı!';
+  }catch(e){ alert('Uygulanamadı: '+(e.message||'')); }
+}
+async function oneriSil(i){
+  const o=ONERILER[i]; if(!o) return; if(!confirm('Bu öneri silinsin mi?')) return;
+  if(FBDB && o.id){ try{ await FBDB.collection('oneriler').doc(o.id).update({ durum:'silindi' }); }catch(e){} }
+  ONERILER.splice(i,1); oneriListe();
+}
+
 /* ==================== BAŞLAT ==================== */
 window.onload=function(){
   loadSettings(); ringLoad(); updateStatusDot(); populateModels();
@@ -1915,6 +2024,7 @@ window.onload=function(){
   document.getElementById('hoca-modal').addEventListener('click', e=>{ if(e.target.id==='hoca-modal') hocaKapat(); });
   document.getElementById('izle-modal').addEventListener('click', e=>{ if(e.target.id==='izle-modal') izleKapat(); });
   document.getElementById('merkez-modal').addEventListener('click', e=>{ if(e.target.id==='merkez-modal') merkezKapat(); });
+  document.getElementById('oneri-modal').addEventListener('click', e=>{ if(e.target.id==='oneri-modal') oneriKapat(); });
   document.getElementById('profil-modal').addEventListener('click', e=>{ if(e.target.id==='profil-modal') profilKapat(); });
   renderStuList();
   try{ ZIRVE_ekranBaslat(); }catch(e){}
