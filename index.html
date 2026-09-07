@@ -743,6 +743,15 @@ async function callGeminiRaw(key, model, prompt, system){
   if(!txt.trim()) throw new Error('Bos yanit');
   return txt;
 }
+/* Model çıktısını görüntülemeden önce temizle: kod bloklarını kaldır, kaçırılmış (&lt;) etiketleri geri çevir */
+function temizAI(t){
+  t=String(t==null?'':t);
+  t=t.replace(/```html/gi,'').replace(/```/g,'');            // markdown kod bloğu çitleri
+  t=t.replace(/^\s*html\s*\n/i,'');                           // başta yalnız "html" satırı
+  // &lt;div style="..."&gt; gibi kaçırılmış YAPISAL etiketleri gerçek etikete çevir ("x &lt; 5" gibi ifadelere dokunma)
+  t=t.replace(/&lt;(\/?)(div|h[1-6]|p|ul|ol|li|b|i|strong|em|table|thead|tbody|tr|td|th|span|small|br|hr)((?:\s[^&<>]*?)?)\s*(\/?)&gt;/gi, '<$1$2$3$4>');
+  return t.trim();
+}
 async function callText(prompt, system){
   if(!hasKey()) throw new Error('Anahtar yok');
   await ensureModels();
@@ -753,7 +762,7 @@ async function callText(prompt, system){
   for(let k=0;k<RING.keys.length;k++){
     const key=RING.keys[(RING.i+k)%RING.keys.length]; let buAnahtarKota=false;
     for(const m of modeller){
-      try{ const r=await callGeminiRaw(key,m,prompt,sysP); RING.i=(RING.i+k)%RING.keys.length; return r; }
+      try{ const r=await callGeminiRaw(key,m,prompt,sysP); RING.i=(RING.i+k)%RING.keys.length; return temizAI(r); }
       catch(e){ sonHata=e; const em=String(e.message||'');
         if(/429|RESOURCE_EXHAUSTED|quota/i.test(em)){ buAnahtarKota=true; break; } // bu anahtar dolu → sıradaki anahtara
         // 404 / model yok / boş yanıt / geçici hata → sıradaki modeli dene
@@ -797,9 +806,40 @@ function aiPDF(btn){
 }
 function aiKopya(btn){ const t=duzMetin(btn.closest('.ai-wrap').querySelector('.ai-body').innerHTML); navigator.clipboard.writeText(t).then(()=>{ btn.textContent='✓ Kopyalandı'; setTimeout(()=>btn.textContent='📋 Kopyala',1500); }); }
 function aiPaylas(btn){ const t=duzMetin(btn.closest('.ai-wrap').querySelector('.ai-body').innerHTML); if(navigator.share){ navigator.share({title:'Değişim Koleji LGS', text:t}).catch(()=>{}); } else aiKopya(btn); }
-function aiSesli(btn){ const t=duzMetin(btn.closest('.ai-wrap').querySelector('.ai-body').innerHTML); try{ speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(t); u.lang='tr-TR'; speechSynthesis.speak(u); }catch(e){} }
-function renderAI(box, innerHTML){ box.innerHTML='<div class="ai-wrap">'+aiToolbar()+'<div class="ai-body">'+innerHTML+'</div></div>'; discGoster(); }
-const RICH='\n\nBİÇİM (ÇOK RENKLİ, göze hoş, akılda kalıcı olsun): <h4> ana başlık, <h5> alt başlık, <b> kalın, <ul><li> madde, <table> tablo. Renkli vurgu için farklı sınıflar kullan: <span class="hl-y">sarı</span>, <span class="hl-g">yeşil</span>, <span class="hl-b">mavi</span>, <span class="hl-p">pembe</span> (önemli kelimeleri renklendir). İpucu için <div class="tip-box">...</div>, tuzak/uyarı için <div class="warn-box">...</div>, kritik bilgi için <div class="banko">...</div>. Bol emoji kullan; her önemli fikri günlük hayattan bir METAFOR/benzetme ile açıkla; akılda kalıcı kısa şifreler üret. Uygun bir yere KAVRAM HARİTASI ekle: <div class="kmap"><div class="kmap-merkez">Ana Kavram</div><div class="kmap-dallar"><div class="kmap-dal">Dal<small>kısa not</small></div><div class="kmap-dal">Dal 2<small>not</small></div></div></div>. Markdown (#,*) ve LaTeX (dolar, frac) ASLA kullanma. Türkçe yaz.';
+let SESLI=false, AI_YUK_T=null;
+function sesliBtnGuncelle(){ try{ document.querySelectorAll('.ai-tools button').forEach(b=>{ const tx=b.textContent||''; if(/Dinle|Durdur/.test(tx)) b.textContent = SESLI ? '⏹ Durdur' : '🔊 Dinle'; }); }catch(e){} }
+function sesDurdur(){ try{ speechSynthesis.cancel(); }catch(e){} SESLI=false; sesliBtnGuncelle(); }
+function aiSesli(btn){
+  try{
+    if(SESLI || speechSynthesis.speaking){ sesDurdur(); return; }
+    const t=duzMetin(btn.closest('.ai-wrap').querySelector('.ai-body').innerHTML);
+    if(!t){ return; }
+    speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(t); u.lang='tr-TR'; u.rate=1; u.pitch=1;
+    const sesler=speechSynthesis.getVoices()||[];
+    const tr=sesler.find(v=>/tr[-_]?TR/i.test(v.lang)) || sesler.find(v=>/turkish|türk/i.test(v.name||''));
+    if(tr) u.voice=tr;
+    u.onend=()=>{ SESLI=false; sesliBtnGuncelle(); };
+    u.onerror=()=>{ SESLI=false; sesliBtnGuncelle(); };
+    SESLI=true; speechSynthesis.speak(u); sesliBtnGuncelle();
+  }catch(e){ SESLI=false; }
+}
+try{ if('speechSynthesis' in window){ speechSynthesis.onvoiceschanged=()=>{}; } }catch(e){}
+/* AI çalışırken net bilgilendirme (aşamalı mesaj) */
+function yukleniyor(box, mesaj){
+  if(!box) return;
+  clearInterval(AI_YUK_T);
+  const id='aiyuk-'+Math.random().toString(36).slice(2,8);
+  box.innerHTML='<div style="display:flex; align-items:center; gap:.7rem; padding:.8rem .9rem; background:#eff6ff; border:1px solid #bfdbfe; border-radius:.9rem;">'
+    +'<div class="typing"><span></span><span></span><span></span></div>'
+    +'<div style="font-weight:800; font-size:.85rem; color:#1d4ed8;"><span id="'+id+'">🤖 '+(mesaj||'Yapay zekâ çalışıyor')+'</span></div></div>';
+  const asamalar=['🤖 '+(mesaj||'Yapay zekâ çalışıyor'),'✍️ Hazırlanıyor…','📝 Yazıyor…','⏳ Neredeyse bitti…'];
+  let i=0;
+  AI_YUK_T=setInterval(()=>{ const el=document.getElementById(id); if(!el){ clearInterval(AI_YUK_T); return; } i++; el.textContent=asamalar[Math.min(i,asamalar.length-1)]; }, 3500);
+}
+function yuklBitir(){ clearInterval(AI_YUK_T); }
+function renderAI(box, innerHTML){ try{ yuklBitir(); }catch(e){} box.innerHTML='<div class="ai-wrap">'+aiToolbar()+'<div class="ai-body">'+innerHTML+'</div></div>'; discGoster(); }
+const RICH='\n\nBİÇİM (ÇOK RENKLİ, göze hoş, akılda kalıcı olsun): <h4> ana başlık, <h5> alt başlık, <b> kalın, <ul><li> madde, <table> tablo. Renkli vurgu için farklı sınıflar kullan: <span class="hl-y">sarı</span>, <span class="hl-g">yeşil</span>, <span class="hl-b">mavi</span>, <span class="hl-p">pembe</span> (önemli kelimeleri renklendir). İpucu için <div class="tip-box">...</div>, tuzak/uyarı için <div class="warn-box">...</div>, kritik bilgi için <div class="banko">...</div>. Bol emoji kullan; her önemli fikri günlük hayattan bir METAFOR/benzetme ile açıkla; akılda kalıcı kısa şifreler üret. Uygun bir yere KAVRAM HARİTASI ekle: <div class="kmap"><div class="kmap-merkez">Ana Kavram</div><div class="kmap-dallar"><div class="kmap-dal">Dal<small>kısa not</small></div><div class="kmap-dal">Dal 2<small>not</small></div></div></div>. Markdown (#,*) ve LaTeX (dolar, frac) ASLA kullanma. HTML etiketlerini DÜZ ve GERÇEK yaz; kod bloğu (```), "html" satırı ya da kaçış (&lt; &gt;) KULLANMA. Türkçe yaz.';
 
 /* ==================== AYARLAR MODAL ==================== */
 function ayarAc(){ const m=document.getElementById('ayar-modal'); document.getElementById('ayar-keys').value=(RING.keys||[]).join('\n'); document.getElementById('ayar-model').value=SETTINGS.model||''; document.getElementById('ayar-sonuc').innerHTML=''; document.getElementById('kh-panel').innerHTML=''; m.classList.add('open'); }
@@ -964,6 +1004,7 @@ function acilisAkis(){
 /* ==================== GÖRÜNÜM YÖNETİMİ ==================== */
 function gorunum(v){ document.querySelectorAll('.section').forEach(s=>s.classList.remove('active')); const el=document.getElementById('view-'+v); if(el) el.classList.add('active'); window.scrollTo(0,0); }
 function git(v){
+  try{ sesDurdur(); yuklBitir(); }catch(e){}
   gorunum(v);
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   const nb=document.getElementById('nav-'+v); if(nb) nb.classList.add('active');
@@ -1141,7 +1182,7 @@ function hocaKonuAc(dk){ const konu=document.getElementById('konu-'+dk)?document
 async function kavramHaritasi(dk){
   if(!requireKey()) return;
   const d=DERS[dk], konu=document.getElementById('konu-'+dk)?document.getElementById('konu-'+dk).value:KONULAR[dk][0];
-  const box=document.getElementById('anlat-'+dk); box.innerHTML='<div class="typing"><span></span><span></span><span></span></div>';
+  const box=document.getElementById('anlat-'+dk); yukleniyor(box,'Kavram haritası çıkarılıyor');
   const sys='Sen LGS öğretmenisin. Bir konunun KAVRAM HARİTASINI çıkarırsın: merkezde ana kavram, çevresinde dallar ve her dalın altında kısa notlar. Renkli, görsel, sade.';
   try{
     const t=await callText('LGS '+d.ad+' "'+konu+'" konusunun KAVRAM HARİTASINI çıkar. Önce bir <div class="kmap"> kavram haritası ver (merkez + en az 5 dal, her dalda kısa <small> not). Sonra <h4>Dalların Açıklaması</h4> altında her dalı 1-2 cümleyle, metaforla anlat. Renkli vurgular kullan.'+RICH, sys);
@@ -1161,7 +1202,7 @@ function konuAc(dk){ const el=document.getElementById('konulist-'+dk); el.style.
 async function aiAnlat(dk){
   if(!requireKey()) return;
   const d=DERS[dk], konu=document.getElementById('konu-'+dk).value, g=dersGuc(dk);
-  const box=document.getElementById('anlat-'+dk); box.innerHTML='<div class="typing"><span></span><span></span><span></span></div>';
+  const box=document.getElementById('anlat-'+dk); yukleniyor(box,'Konu anlatımı hazırlanıyor');
   const sys='Sen Değişim Koleji\'nde LGS hazırlayan sıcak, sabırlı bir öğretmensin. Öğrencinin adı '+AKTIF.ad.split(' ')[0]+'. 8. sınıf (LGS) seviyesine uygun, basit ve motive edici anlat. Bilmediğini uydurma.';
   const seviyeNot = g<=2 ? 'Öğrenci bu derste ZAYIF; en baştan, en basit dilden, bol örnekle, adım adım anlat.' : 'Öğrenci bu derste iyi; özü hızlı geç, sık çıkan noktalara ve zor/ayırt edici detaylara odaklan.';
   try{
@@ -1218,7 +1259,7 @@ function quizCevap(i){
 async function sikAnaliz(idx){
   if(!requireKey()) return;
   const q=QUIZ.list[idx], dk=q.ders||QUIZ.ders; const box=document.getElementById('analiz-box');
-  box.innerHTML='<div class="typing"><span></span><span></span><span></span></div>';
+  yukleniyor(box,'Şıklar analiz ediliyor');
   const siklar=q.secenekler.map((s,i)=>String.fromCharCode(65+i)+') '+s).join('\n');
   const sys='Sen Değişim Koleji\'nin efsane "Hoca"sısın. Şıkları tek tek, sıcak ve mizahlı bir dille analiz edersin; her doğru/yanlışı bir GÜNLÜK HAYAT METAFORUYLA açıklarsın ki çocuk asla unutmasın. LGS 8. sınıf seviyesi. Uydurma.';
   try{
@@ -1230,7 +1271,7 @@ async function sikAnaliz(idx){
 async function ozelDers(idx){
   if(!requireKey()) return;
   const q=QUIZ.list[idx], dk=q.ders||QUIZ.ders, konu=q.konu||QUIZ.konu; const box=document.getElementById('analiz-box');
-  box.innerHTML='<div class="typing"><span></span><span></span><span></span></div>';
+  yukleniyor(box,'Özel ders hazırlanıyor');
   const ad=AKTIF.ad.split(' ')[0];
   const sys='Sen '+ad+'\'in çok sevdiği, enerjik "Hoca"sısın. "koçum", "aslanım" gibi sıcak hitaplar, bol metafor ve günlük hayattan örneklerle, sıfırdan, en basit dille anlatırsın. Cevabı doğrudan yapıştırmazsın; önce sezdirir, merak uyandırır, sonra kavratırsın. LGS 8. sınıf. Uydurma.';
   try{
@@ -1336,7 +1377,7 @@ function denemeKaydet(){
 function denemeSil(i){ if(!confirm('Bu deneme silinsin mi?')) return; AKTIF.denemeler.splice(i,1); profKaydet(); renderDeneme(); }
 async function denemeYorum(i){
   if(!requireKey()) return;
-  const d=AKTIF.denemeler[i]; const box=document.getElementById('deneme-yorum'); box.innerHTML='<div class="typing"><span></span><span></span><span></span></div>';
+  const d=AKTIF.denemeler[i]; const box=document.getElementById('deneme-yorum'); yukleniyor(box,'Deneme analiz ediliyor');
   const dagilim=DERSLER.map(x=>x.ad+': '+(d.netler[x.key]||0).toFixed(1)+'/'+x.soru+' net').join(', ');
   const zayif=DERSLER.filter(x=>(d.netler[x.key]||0)/x.soru<0.5).map(x=>x.ad);
   const sys='Sen Değişim Koleji LGS koçusun. Öğrenci '+AKTIF.ad.split(' ')[0]+'. Kısa, net, motive edici konuş. Sadece verilen verilere dayan.';
@@ -1587,7 +1628,7 @@ function renderRapor(){
 }
 async function veliRaporUret(){
   if(!requireKey()) return;
-  const box=document.getElementById('rapor-cikti'); box.innerHTML='<div class="typing"><span></span><span></span><span></span></div>';
+  const box=document.getElementById('rapor-cikti'); yukleniyor(box,'Gelişim raporu yazılıyor');
   const puan=guncelPuan();
   const dn=AKTIF.denemeler;
   const trend = dn.length>=2 ? (dn[dn.length-1].puan-dn[0].puan) : 0;
@@ -1900,7 +1941,7 @@ function notSil(i){ notlar().splice(i,1); profKaydet(); renderNotlar(); }
 async function kavramKartiUret(){
   if(!requireKey()) return;
   const dk=document.getElementById('not-ders').value, konu=document.getElementById('not-konu').value;
-  const box=document.getElementById('not-ai-cikti'); box.innerHTML='<div class="typing"><span></span><span></span><span></span></div>';
+  const box=document.getElementById('not-ai-cikti'); yukleniyor(box,'Kavram kartları üretiliyor');
   const sys='Sen LGS (8. sınıf) için kavram kartı hazırlayan öğretmensin. Her kavram için kısa net tanım, konuyu simgeleyen TEK bir emoji ve akılda kalıcı bir şifre/çağrışım ver. Çıktın SADECE JSON.';
   try{
     const arr=await callJSON('LGS '+DERS[dk].ad+' "'+konu+'" konusunun EN ÖNEMLİ 5 kavramı için kart üret. Format: [{"kavram":"...","tanim":"kısa net tanım","sembol":"tek emoji","sifre":"akılda kalıcı çağrışım"}].', sys);
@@ -1915,7 +1956,7 @@ async function kavramKartiUret(){
 async function flashcardUret(){
   if(!requireKey()) return;
   const dk=document.getElementById('not-ders').value, konu=document.getElementById('not-konu').value;
-  const box=document.getElementById('not-ai-cikti'); box.innerHTML='<div class="typing"><span></span><span></span><span></span></div>';
+  const box=document.getElementById('not-ai-cikti'); yukleniyor(box,'Flashcardlar üretiliyor');
   const sys='Sen LGS flashcard hazırlayan öğretmensin. Ön yüz kısa soru/kavram, arka yüz kısa cevap. Çıktın SADECE JSON.';
   try{
     const arr=await callJSON('LGS '+DERS[dk].ad+' "'+konu+'" konusundan 6 flashcard üret. Format: [{"on":"ön yüz (soru/kavram)","arka":"arka yüz (cevap)"}].', sys);
