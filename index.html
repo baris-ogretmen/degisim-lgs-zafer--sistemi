@@ -367,20 +367,26 @@ body.has-disc .qr-fab{ bottom:calc(4.4rem + env(safe-area-inset-bottom)); }
 <div class="overlay" id="ayar-modal">
   <div class="modal">
     <h2><i class="fas fa-cog"></i> Ayarlar <button class="mclose" onclick="ayarKapat()">×</button></h2>
-    <label class="lbl">Gemini API Anahtarların (her satıra bir anahtar)</label>
-    <textarea class="inp" id="ayar-keys" rows="3" placeholder="AIza..." style="resize:vertical; font-size:.82rem;"></textarea>
-    <div class="hint">Ücretsiz al: <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a>. Birden çok anahtar girersen kota dolunca otomatik diğerine geçer. Anahtarlar sadece bu cihazda saklanır.</div>
-    <label class="lbl">Model</label>
-    <input type="text" class="inp" id="ayar-model" list="model-list" placeholder="gemini-2.5-flash">
-    <datalist id="model-list"></datalist>
-    <div class="hint">Bilmiyorsan boş bırak. Kota doluyorsa <b>gemini-2.5-flash-lite</b> dene.</div>
-    <div class="row2" style="margin-top:1rem;">
-      <button class="btn btn-emerald btn-sm" style="width:100%;" onclick="ayarKaydet()">Kaydet</button>
-      <button class="btn btn-ghost btn-sm" style="width:100%;" onclick="anahtarTestEt()">Anahtarları Test Et</button>
-    </div>
-    <div id="kh-panel" class="khealth"></div>
-    <div id="ayar-sonuc" style="margin-top:.8rem; font-weight:800; font-size:.82rem;"></div>
-    <details style="margin-top:1rem;">
+    <div class="tip-box" style="margin:.2rem 0 1rem;">✅ Yapay zekâ okulun <b>ortak anahtarıyla</b> otomatik açıktır. Aşağıdaki anahtar bölümüyle <b>uğraşmana gerek yok</b>; sadece istersen kendi anahtarını ekleyebilirsin.</div>
+    <details style="margin-bottom:.5rem;">
+      <summary style="font-weight:900; font-size:.9rem; color:#2563eb; cursor:pointer;">🔑 Kendi anahtarını gir (opsiyonel)</summary>
+      <div style="margin-top:.7rem;">
+        <label class="lbl" style="margin-top:0;">Gemini API Anahtarların (her satıra bir anahtar)</label>
+        <textarea class="inp" id="ayar-keys" rows="3" placeholder="AIzaSy... (buraya yapıştır)" style="resize:vertical; font-size:.82rem;"></textarea>
+        <div class="hint">Ücretsiz al: <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a>. Anahtarlar sadece bu cihazda saklanır.</div>
+        <label class="lbl">Model</label>
+        <input type="text" class="inp" id="ayar-model" list="model-list" placeholder="gemini-2.5-flash">
+        <datalist id="model-list"></datalist>
+        <div class="hint">Bilmiyorsan boş bırak. Kota doluyorsa <b>gemini-2.5-flash-lite</b> dene.</div>
+        <div class="row2" style="margin-top:1rem;">
+          <button class="btn btn-emerald btn-sm" style="width:100%;" onclick="ayarKaydet()">Kaydet</button>
+          <button class="btn btn-ghost btn-sm" style="width:100%;" onclick="anahtarTestEt()">Anahtarları Test Et</button>
+        </div>
+        <div id="kh-panel" class="khealth"></div>
+        <div id="ayar-sonuc" style="margin-top:.8rem; font-weight:800; font-size:.82rem;"></div>
+      </div>
+    </details>
+    <details style="margin-top:.3rem;">
       <summary style="font-weight:900; font-size:.85rem; color:#2563eb; cursor:pointer;">❓ Ücretsiz API anahtarı nasıl alınır? (adım adım)</summary>
       <div style="margin-top:.6rem; font-size:.8rem; font-weight:600; color:#334155; line-height:1.6;">
         <b>Neden gerekli?</b> Uygulamadaki yapay zekâ özellikleri (konu anlatımı, test üretimi, Hoca sohbeti, kavram kartı) Google Gemini ile çalışır. Ücretsiz anahtar = ücretsiz, kişisel kota. <b>Not:</b> Okulun <b>Ortak Anahtarı</b> tanımlıysa buna gerek kalmaz, AI zaten açıktır.<br><br>
@@ -404,9 +410,10 @@ body.has-disc .qr-fab{ bottom:calc(4.4rem + env(safe-area-inset-bottom)); }
     <h2><i class="fas fa-shield-halved"></i> Merkezi Yönetim <button class="mclose" onclick="merkezKapat()">×</button></h2>
     <div id="merkez-giris">
       <p style="font-size:.82rem; font-weight:700; color:#64748b; line-height:1.5;">Bu bölüm yalnızca yöneticiye açıktır. Yönetici şifreni gir.</p>
-      <input type="password" class="inp" id="merkez-sifre" placeholder="Yönetici şifresi" onkeydown="if(event.key==='Enter')merkezGiris()">
+      <input type="password" class="inp" id="merkez-sifre" placeholder="Yönetici şifresi" autocapitalize="off" autocorrect="off" spellcheck="false" onkeydown="if(event.key==='Enter')merkezGiris()">
       <button class="btn btn-primary" style="margin-top:.7rem;" onclick="merkezGiris()">Giriş</button>
       <div id="merkez-hata" style="color:#dc2626; font-weight:800; font-size:.8rem; margin-top:.5rem;"></div>
+      <div class="hint" style="margin-top:.6rem;">İlk giriş şifresi: <b>degisim2026</b> (küçük harf, bitişik, sonunda 2026). Girdikten sonra panelden değiştirebilirsin.</div>
     </div>
     <div id="merkez-panel" style="display:none;">
       <div class="warn-box" style="margin:.2rem 0 1rem;"><i class="fas fa-user-shield"></i> <b>Kurucu yetkisi aktif</b><br>Giriş: ☁️ <span id="merkez-kimlik">Yönetici</span><br>Buradaki ayarlar <b>tüm cihazlara (bulut)</b> uygulanır.</div>
@@ -564,7 +571,7 @@ const DERS = {}; DERSLER.forEach(d=>DERS[d.key]=d);
 
 /* ==================== LGS KONULARI (8. sınıf) ==================== */
 const KONULAR = {
-  tur:['Sözcükte Anlam','Cümlede Anlam','Söz Sanatları','Paragrafta Anlam & Yapı','Paragrafta Konu-Ana Fikir','Fiilimsiler','Cümlenin Ögeleri','Fiilde Çatı','Cümle Türleri','Anlatım Bozuklukları','Yazım Kuralları','Noktalama İşaretleri','Sözel Mantık & Muhakeme'],
+  tur:['Sözcükte Anlam','Cümlede Anlam','Deyim ve Atasözleri','Söz Sanatları','Edebi Türler','Paragrafta Anlam & Yapı','Paragrafta Konu-Ana Fikir','Fiilimsiler','Cümlenin Ögeleri','Fiilde Çatı','Cümle Türleri','Anlatım Bozuklukları','Yazım Kuralları','Noktalama İşaretleri','Sözel Mantık & Muhakeme'],
   mat:['Çarpanlar ve Katlar (EBOB-EKOK)','Üslü İfadeler','Kareköklü İfadeler','Veri Analizi','Basit Olayların Olasılığı','Cebirsel İfadeler ve Özdeşlikler','Doğrusal Denklemler','Eşitsizlikler','Üçgenler & Pisagor','Dönüşüm Geometrisi','Geometrik Cisimler (Prizmalar)'],
   fen:['Mevsimler ve İklim','DNA ve Genetik Kod','Basınç','Madde ve Endüstri (Periyodik Sistem)','Fiziksel-Kimyasal Değişim & Asit-Baz','Basit Makineler','Enerji Dönüşümleri ve Çevre','Elektrik Yükleri ve Enerjisi'],
   ink:['Bir Kahraman Doğuyor','Millî Uyanış: Direniş','Millî Bir Destan: Ya İstiklal Ya Ölüm','Atatürkçülük ve Çağdaşlaşan Türkiye','Demokratikleşme Çabaları','Atatürk Dönemi Dış Politika','Atatürk\'ün Ölümü ve Sonrası'],
@@ -2032,8 +2039,8 @@ function merkezAc(){ document.getElementById('merkez-modal').classList.add('open
 function merkezKapat(){ document.getElementById('merkez-modal').classList.remove('open'); }
 function aktifSifre(){ return (MERKEZ.sifre && MERKEZ.sifre.length) ? MERKEZ.sifre : VARSAYILAN_SIFRE; }
 function merkezGiris(){
-  const s=document.getElementById('merkez-sifre').value||'';
-  if(s!==aktifSifre()){ document.getElementById('merkez-hata').innerHTML='Şifre yanlış.'; return; }
+  const s=(document.getElementById('merkez-sifre').value||'').trim();
+  if(s!==aktifSifre().trim()){ document.getElementById('merkez-hata').innerHTML='Şifre yanlış. (İlk şifre: degisim2026)'; return; }
   merkezPanelAc();
 }
 function merkezPanelAc(){
