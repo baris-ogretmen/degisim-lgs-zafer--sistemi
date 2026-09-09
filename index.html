@@ -183,8 +183,10 @@ body.has-disc{ padding-bottom:5.5rem; }
 #ekran-pill .zx{ background:rgba(255,255,255,.16); border:none; color:#fff; width:1.15rem; height:1.15rem; border-radius:50%; font-weight:900; cursor:pointer; font-size:.7rem; line-height:1; }
 body.has-disc #ekran-pill{ bottom:calc(4.4rem + env(safe-area-inset-bottom)); }
 .qr-fab{ position:fixed; right:.7rem; bottom:calc(.7rem + env(safe-area-inset-bottom)); z-index:66; width:3rem; height:3rem; border-radius:50%; background:linear-gradient(135deg,var(--emerald),var(--emerald2)); color:#fff; border:none; font-size:1.1rem; box-shadow:0 8px 22px rgba(5,150,105,.4); cursor:pointer; opacity:.9; }
+.anahtar-fab{ position:fixed; right:.7rem; bottom:calc(4rem + env(safe-area-inset-bottom)); z-index:66; width:3rem; height:3rem; border-radius:50%; background:linear-gradient(135deg,#f59e0b,#fbbf24); color:#0b1e3f; border:none; font-size:1.15rem; box-shadow:0 8px 22px rgba(245,158,11,.45); cursor:pointer; opacity:.92; }
+body.has-disc .anahtar-fab{ bottom:calc(7.7rem + env(safe-area-inset-bottom)); }
 body.has-disc .qr-fab{ bottom:calc(4.4rem + env(safe-area-inset-bottom)); }
-@media print{ html{ zoom:1 !important; } nav,header .hdr-actions,.ai-disc,.net-toast,#ekran-pill,.qr-fab{ display:none !important; } }
+@media print{ html{ zoom:1 !important; } nav,header .hdr-actions,.ai-disc,.net-toast,#ekran-pill,.qr-fab,.anahtar-fab{ display:none !important; } }
 .pill-tag{ display:inline-block; font-size:.62rem; font-weight:900; padding:.15rem .5rem; border-radius:.5rem; letter-spacing:.3px; }
 
 /* Kavram Haritası */
@@ -227,6 +229,23 @@ body.has-disc .qr-fab{ bottom:calc(4.4rem + env(safe-area-inset-bottom)); }
 </div>
 <div id="ekran-pill" style="display:none;" onclick="ZIRVE_ekranTikla(event)" title="Ekran modu"><span id="ekran-label">📺 Oto</span><button class="zx" onclick="ZIRVE_ekranGizle(event)">×</button></div>
 <button class="qr-fab hidden" id="qr-fab" onclick="qrAc()" title="QR ile paylaş"><i class="fas fa-qrcode"></i></button>
+<button class="anahtar-fab" id="anahtar-fab" onclick="anahtarMerkeziAc()" title="Anahtar Merkezi">🔑</button>
+
+<!-- ANAHTAR MERKEZİ MODAL -->
+<div class="overlay" id="anahtar-modal">
+  <div class="modal">
+    <h2><i class="fas fa-key"></i> Anahtar Merkezi <button class="mclose" onclick="anahtarMerkeziKapat()">×</button></h2>
+    <p style="font-size:.82rem; font-weight:700; color:#64748b; line-height:1.5; margin:0 0 .6rem;">Yapay zekâ özellikleri okulun <b>ortak anahtarıyla</b> çalışır; genelde bir şey yapmana gerek yoktur. Kendi ücretsiz anahtarını da ekleyebilirsin:</p>
+    <div style="font-size:.82rem; font-weight:600; color:#334155; line-height:1.6; background:#f8fafc; border-radius:.8rem; padding:.7rem .8rem;">
+      1️⃣ <a href="https://aistudio.google.com/apikey" target="_blank" style="color:#1d4ed8; text-decoration:underline;">aistudio.google.com/apikey</a> → Google ile gir<br>
+      2️⃣ <b>Create API key</b> → <b>AIza…</b> anahtarını kopyala<br>
+      3️⃣ ⚙️ Ayarlar → anahtar kutusuna yapıştır → Kaydet
+    </div>
+    <button class="btn btn-emerald" style="margin-top:.8rem; background:#25d366; border:none;" onclick="anahtarWhatsapp()"><i class="fab fa-whatsapp mr-1"></i> WhatsApp ile Barış Hocam'a gönder</button>
+    <button class="btn btn-ghost btn-sm" style="width:100%; margin-top:.6rem;" onclick="acLink('https://aistudio.google.com/apikey')">🔗 Ücretsiz Anahtar Sayfasını Aç</button>
+    <div class="hint" style="margin-top:.8rem; line-height:1.5;">🔒 <b>KVKK / Gizlilik:</b> Anahtarlar yalnızca yapay zekâ isteklerinde kullanılır; kişisel verilerin reklam vb. amaçla paylaşılmaz. Ortak anahtar cihazına kalıcı kaydedilmez, buluttan gelir. Kendi anahtarını girersen yalnızca kendi cihazında saklanır.</div>
+  </div>
+</div>
 
 <div class="ai-disc" id="ai-disc">
   <i class="fas fa-triangle-exclamation w"></i>
@@ -395,12 +414,13 @@ body.has-disc .qr-fab{ bottom:calc(4.4rem + env(safe-area-inset-bottom)); }
       <input type="text" class="inp" id="merkez-yil" placeholder="2025-2026">
       <label class="lbl">🔑 Ortak AI Anahtarı Havuzu <span style="color:#059669;">(HERKESTE ÇALIŞIR)</span></label>
       <div class="hint" style="margin-bottom:.4rem;">Buraya anahtar(lar) ekleyip <b>Kaydet & Yayınla</b> dersen tüm veli/öğrenci/öğretmende AI açılır — kimsenin kendi anahtarını girmesine gerek kalmaz. En fazla <b>1000</b> anahtar; kotalar birleşir, biri dolunca diğerine geçilir.</div>
-      <textarea class="inp" id="merkez-anahtar" rows="4" placeholder="Ekle... (her satıra bir anahtar)" style="resize:vertical; font-size:.82rem;" oninput="merkezSayac()"></textarea>
+      <textarea class="inp" id="merkez-anahtar" rows="4" placeholder="Ekle... (her satıra bir anahtar)" style="resize:vertical; font-size:.82rem;" oninput="merkezSayac();merkezKeyListe()"></textarea>
       <div class="row3" style="margin-top:.5rem;">
         <button class="btn btn-ghost btn-sm" style="width:100%;" onclick="merkezKopyala()">📋 Tümünü Kopyala</button>
         <button class="btn btn-ghost btn-sm" style="width:100%;" onclick="merkezYapistir()">📥 Panodan Yapıştır</button>
         <button class="btn btn-ghost btn-sm" style="width:100%; color:#dc2626;" onclick="merkezHepsiSil()">🗑️ Hepsini Sil</button>
       </div>
+      <div id="merkez-keyliste" style="margin-top:.5rem;"></div>
       <div id="merkez-sayac" style="font-size:.78rem; font-weight:900; color:#334155; margin-top:.6rem;">Havuzda 0 / 1000 anahtar</div>
       <label class="lbl">📱 Destek / Anahtar için WhatsApp numarası</label>
       <input type="text" class="inp" id="merkez-wa" placeholder="905xxxxxxxxx (başında 90)">
@@ -517,7 +537,7 @@ body.has-disc .qr-fab{ bottom:calc(4.4rem + env(safe-area-inset-bottom)); }
 const GOMULU_ANAHTARLAR = [];
 
 /* ==================== FIREBASE · ORTAK AI ANAHTARI (Merkezi Yönetim) ==================== */
-const FIREBASE_CONFIG = {
+const GOMULU_FIREBASE = {
   apiKey: "AIzaSyAqeO-yQyQPnLsOqKmSNvVH23WPvneIjaU",
   authDomain: "shaped-totem-481514-c5.firebaseapp.com",
   projectId: "shaped-totem-481514-c5",
@@ -616,14 +636,22 @@ function ringLoad(){
 }
 function ringSave(){ try{ localStorage.setItem('dk_lgs_keys',JSON.stringify(RING.keys)); localStorage.setItem('dk_lgs_keycool',JSON.stringify(RING.cool)); }catch(e){} }
 function ringSet(arr){ RING.keys=arr.filter(Boolean); RING.i=0; SETTINGS.keys=RING.keys; }
-function hasKey(){ return RING.keys && RING.keys.length>0; }
+function hasKey(){ return (RING.keys && RING.keys.length>0) || (MERKEZ.anahtarlar && MERKEZ.anahtarlar.length>0) || (GOMULU_ANAHTARLAR && GOMULU_ANAHTARLAR.length>0); }
+function _karistir(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+/* Deneme sırası: kişisel (kalıcı ring) → ortak havuz (RASTGELE) → gömülü. Ortak havuz cihaza kaydedilmez. */
+function anahtarSirasi(){
+  const kis=(RING.keys||[]).slice();
+  const ortak=_karistir(MERKEZ.anahtarlar||[]);
+  const gom=(GOMULU_ANAHTARLAR||[]).slice();
+  return kis.concat(ortak,gom).filter(s=>s&&s.length>10).filter((v,i,a)=>a.indexOf(v)===i);
+}
 
 /* ---- Firebase: ortak anahtarı buluttan oku / yaz ---- */
-function fbInit(){ try{ if(typeof firebase==='undefined') return false; if(!firebase.apps||!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG); FBDB=firebase.firestore(); return true; }catch(e){ FBDB=null; return false; } }
+function fbInit(){ try{ if(typeof firebase==='undefined') return false; if(!firebase.apps||!firebase.apps.length) firebase.initializeApp(GOMULU_FIREBASE); FBDB=firebase.firestore(); return true; }catch(e){ FBDB=null; return false; } }
 async function merkezYukle(){
   if(!FBDB) return;
   try{
-    const doc=await FBDB.collection('merkez').doc('ayarlar').get();
+    const doc=await FBDB.collection('ayarlar').doc('merkez').get();
     if(doc.exists){ const d=doc.data()||{};
       MERKEZ.wa=d.waNumara||''; MERKEZ.duyuru=d.duyuru||''; MERKEZ.mail=d.yoneticiMail||''; MERKEZ.sifre=d.yoneticiSifre||''; MERKEZ.yil=d.ogretimYili||'';
       MERKEZ.ogrenciler=(d.ogrenciler && typeof d.ogrenciler==='object')?d.ogrenciler:{};
@@ -633,16 +661,15 @@ async function merkezYukle(){
       if(d.ortakAnahtar) havuz.push(d.ortakAnahtar);
       havuz=havuz.map(s=>String(s||'').trim()).filter(s=>s.length>10);
       havuz=havuz.filter((v,i,a)=>a.indexOf(v)===i);
-      MERKEZ.anahtarlar=havuz;
-      let eklendi=false;
-      havuz.forEach(k=>{ if(RING.keys.indexOf(k)===-1){ RING.keys.push(k); eklendi=true; } });
-      if(eklendi){ SETTINGS.keys=RING.keys; updateStatusDot(); populateModels(); }
+      MERKEZ.anahtarlar=havuz;   // yalnızca bellekte; cihaza/RING'e KALICI yazılmaz (her açılışta buluttan taze)
+      updateStatusDot(); populateModels();
     }
   }catch(e){}
 }
+window.ZIRVE_merkezYukle=merkezYukle;
 async function merkezKaydet(payload){
   if(!FBDB){ if(!fbInit()||!FBDB) throw new Error('Firebase bağlanamadı. İnternet ve Firebase ayarlarını kontrol et.'); }
-  await FBDB.collection('merkez').doc('ayarlar').set(Object.assign({ guncelleme:Date.now() }, payload), { merge:true });
+  await FBDB.collection('ayarlar').doc('merkez').set(Object.assign({ guncelleme:Date.now() }, payload), { merge:true });
 }
 /* Öğrenme Profili — her AI üretimine otomatik enjekte (bulut profili + yerel profil birleşik) */
 function profilEk(){
@@ -661,7 +688,7 @@ async function merkezProfilUygula(){
   let kayit = (MERKEZ.ogrenciler && MERKEZ.ogrenciler[sl]) || null;
   // bulut henüz yüklenmediyse tazele
   if(!kayit && FBDB){
-    try{ const doc=await FBDB.collection('merkez').doc('ayarlar').get(); if(doc.exists){ const o=(doc.data()||{}).ogrenciler||{}; MERKEZ.ogrenciler=o; kayit=o[sl]||null; } }catch(e){}
+    try{ const doc=await FBDB.collection('ayarlar').doc('merkez').get(); if(doc.exists){ const o=(doc.data()||{}).ogrenciler||{}; MERKEZ.ogrenciler=o; kayit=o[sl]||null; } }catch(e){}
   }
   if(kayit){ const profil=(typeof kayit==='string')?kayit:(kayit.profil||''); if(profil && AKTIF.merkezProfil!==profil){ AKTIF.merkezProfil=profil; profKaydet();
     // panel açıksa yenile
@@ -689,7 +716,7 @@ function gercekModel(m){ // '-latest' alias -> gerçek
 }
 async function ensureModels(){
   if(MODELLER.length || !hasKey()) return;
-  for(const key of RING.keys){ try{ const list=await geminiListModels(key); if(list.length){ MODELLER=list; break; } }catch(e){} }
+  for(const key of anahtarSirasi()){ try{ const list=await geminiListModels(key); if(list.length){ MODELLER=list; break; } }catch(e){} }
 }
 async function populateModels(){
   await ensureModels();
@@ -758,11 +785,12 @@ async function callText(prompt, system){
   await rlBekle();
   const sysP=(system||'')+profilEk();
   const modeller=modelSirasi();
-  let sonHata=null, hepsiKota=(RING.keys.length>0);
-  for(let k=0;k<RING.keys.length;k++){
-    const key=RING.keys[(RING.i+k)%RING.keys.length]; let buAnahtarKota=false;
+  const anahtarlar=anahtarSirasi();
+  let sonHata=null, hepsiKota=(anahtarlar.length>0);
+  for(let k=0;k<anahtarlar.length;k++){
+    const key=anahtarlar[k]; let buAnahtarKota=false;
     for(const m of modeller){
-      try{ const r=await callGeminiRaw(key,m,prompt,sysP); RING.i=(RING.i+k)%RING.keys.length; return temizAI(r); }
+      try{ const r=await callGeminiRaw(key,m,prompt,sysP); return temizAI(r); }
       catch(e){ sonHata=e; const em=String(e.message||'');
         if(/429|RESOURCE_EXHAUSTED|quota/i.test(em)){ buAnahtarKota=true; break; } // bu anahtar dolu → sıradaki anahtara
         // 404 / model yok / boş yanıt / geçici hata → sıradaki modeli dene
@@ -1990,6 +2018,16 @@ function whatsappIste(){
   if(no){ acLink('https://wa.me/'+no+'?text='+mesaj); }
   else { acLink('https://wa.me/?text='+mesaj); }
 }
+/* Anahtar Merkezi (her sayfada sağ altta) — WhatsApp sabit: 905076319287 */
+const ANAHTAR_WA='905076319287';
+function anahtarMerkeziAc(){ document.getElementById('anahtar-modal').classList.add('open'); }
+function anahtarMerkeziKapat(){ document.getElementById('anahtar-modal').classList.remove('open'); }
+function anahtarWhatsapp(){
+  const no=(MERKEZ.wa||'').replace(/[^0-9]/g,'')||ANAHTAR_WA;
+  const kim=(AKTIF?(' ('+AKTIF.ad+')'):'');
+  const mesaj=encodeURIComponent('Merhaba Barış Hocam, Değişim Koleji LGS uygulaması için ücretsiz API anahtarı almak istiyorum'+kim+'. Yardımcı olur musunuz?');
+  acLink('https://wa.me/'+no+'?text='+mesaj);
+}
 function merkezAc(){ document.getElementById('merkez-modal').classList.add('open'); document.getElementById('merkez-giris').style.display='block'; document.getElementById('merkez-panel').style.display='none'; document.getElementById('merkez-sifre').value=''; document.getElementById('merkez-hata').innerHTML=''; }
 function merkezKapat(){ document.getElementById('merkez-modal').classList.remove('open'); }
 function aktifSifre(){ return (MERKEZ.sifre && MERKEZ.sifre.length) ? MERKEZ.sifre : VARSAYILAN_SIFRE; }
@@ -2007,13 +2045,28 @@ function merkezPanelAc(){
   document.getElementById('merkez-wa').value = MERKEZ.wa || '';
   const fb=document.getElementById('merkez-fb'); if(fb) fb.innerHTML = FBDB ? '☁️ Bulut Senkron (Firebase) ✅ bağlı' : '☁️ Bulut Senkron: ⚠️ bağlı değil (internet?)';
   ogrProfilListe();
-  merkezSayac();
+  merkezSayac(); merkezKeyListe();
   try{ oneriYukle(); }catch(e){}
 }
 function merkezSayac(){
   const t=document.getElementById('merkez-anahtar').value||'';
   const n=anahtarlariAyikla(t).length;
   const el=document.getElementById('merkez-sayac'); if(el) el.innerHTML='Havuzda <span style="color:'+(n?'#059669':'#94a3b8')+'">'+n+'</span> / 1000 anahtar';
+}
+function _maske(k){ return k.length<=10?k:(k.slice(0,6)+'••••'+k.slice(-4)); }
+function merkezKeyListe(){
+  const box=document.getElementById('merkez-keyliste'); if(!box) return;
+  const keys=anahtarlariAyikla(document.getElementById('merkez-anahtar').value||'');
+  if(!keys.length){ box.innerHTML=''; return; }
+  box.innerHTML=keys.map((k,i)=>'<div style="display:flex; align-items:center; gap:.5rem; padding:.4rem .6rem; background:#f1f5f9; border-radius:.6rem; margin-bottom:.35rem;">'
+    +'<span style="flex:1; font-family:monospace; font-size:.74rem; font-weight:700; color:#334155;">'+(i+1)+'. '+_maske(k)+'</span>'
+    +'<button class="mini-x" style="background:#fee2e2; color:#b91c1c; border:none; width:1.5rem; height:1.5rem; border-radius:50%; font-weight:900; cursor:pointer;" onclick="merkezKeySil('+i+')" title="Bu anahtarı sil">×</button></div>').join('');
+}
+function merkezKeySil(i){
+  const keys=anahtarlariAyikla(document.getElementById('merkez-anahtar').value||'');
+  keys.splice(i,1);
+  document.getElementById('merkez-anahtar').value=keys.join('\n');
+  merkezSayac(); merkezKeyListe();
 }
 async function merkezYapistir(){
   try{ const t=await navigator.clipboard.readText(); if(t){ const cur=document.getElementById('merkez-anahtar'); cur.value=(cur.value?cur.value.replace(/\s*$/,'')+'\n':'')+t.trim(); merkezSayac(); } }
@@ -2063,11 +2116,10 @@ async function merkezYaz(){
     const payload={ ortakAnahtarlar:havuz, waNumara:wa, ogretimYili:yil, ogrenciler:MERKEZ.ogrenciler||{}, ortakAnahtar:firebase.firestore.FieldValue.delete() };
     if(MERKEZ.sifre) payload.yoneticiSifre=MERKEZ.sifre;
     await merkezKaydet(payload);
-    MERKEZ.anahtarlar=havuz; MERKEZ.wa=wa; MERKEZ.yil=yil;
-    // yeni anahtarları halkaya ekle
-    havuz.forEach(k=>{ if(RING.keys.indexOf(k)===-1) RING.keys.push(k); }); SETTINGS.keys=RING.keys; updateStatusDot(); populateModels();
-    box.style.color='#059669'; box.innerHTML='<i class="fas fa-check-circle mr-1"></i> Yayınlandı! '+havuz.length+' anahtar bulutta. Artık tüm öğrenci/veli/öğretmende AI otomatik açık. ✅';
-    merkezSayac();
+    MERKEZ.anahtarlar=havuz; MERKEZ.wa=wa; MERKEZ.yil=yil;   // ortak havuz yalnız bellekte; cihaza yazılmaz
+    updateStatusDot(); populateModels();
+    box.style.color='#059669'; box.innerHTML='<i class="fas fa-check-circle mr-1"></i> Yayınlandı! '+havuz.length+' anahtar bulutta. Artık uygulamayı açan <b>herkeste</b> AI otomatik açık. ✅';
+    merkezSayac(); merkezKeyListe();
   }catch(e){ box.style.color='#dc2626'; box.innerHTML='<i class="fas fa-triangle-exclamation mr-1"></i> '+(e.message||'Kaydedilemedi.'); }
 }
 function profilAc(){ if(!AKTIF) return; document.getElementById('profil-ad').innerText=AKTIF.ad.split(' ')[0]; document.getElementById('profil-metin').value=AKTIF.ogrenmeProfili||''; document.getElementById('profil-modal').classList.add('open'); }
@@ -2170,6 +2222,7 @@ window.onload=function(){
   document.getElementById('izle-modal').addEventListener('click', e=>{ if(e.target.id==='izle-modal') izleKapat(); });
   document.getElementById('merkez-modal').addEventListener('click', e=>{ if(e.target.id==='merkez-modal') merkezKapat(); });
   document.getElementById('oneri-modal').addEventListener('click', e=>{ if(e.target.id==='oneri-modal') oneriKapat(); });
+  document.getElementById('anahtar-modal').addEventListener('click', e=>{ if(e.target.id==='anahtar-modal') anahtarMerkeziKapat(); });
   document.getElementById('profil-modal').addEventListener('click', e=>{ if(e.target.id==='profil-modal') profilKapat(); });
   renderStuList();
   try{ ZIRVE_ekranBaslat(); }catch(e){}
