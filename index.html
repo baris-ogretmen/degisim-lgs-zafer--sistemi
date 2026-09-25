@@ -185,8 +185,17 @@ body.has-disc #ekran-pill{ bottom:calc(4.4rem + env(safe-area-inset-bottom)); }
 .qr-fab{ position:fixed; right:.7rem; bottom:calc(.7rem + env(safe-area-inset-bottom)); z-index:66; width:3rem; height:3rem; border-radius:50%; background:linear-gradient(135deg,var(--emerald),var(--emerald2)); color:#fff; border:none; font-size:1.1rem; box-shadow:0 8px 22px rgba(5,150,105,.4); cursor:pointer; opacity:.9; }
 .anahtar-fab{ position:fixed; right:.7rem; bottom:calc(4rem + env(safe-area-inset-bottom)); z-index:66; width:3rem; height:3rem; border-radius:50%; background:linear-gradient(135deg,#f59e0b,#fbbf24); color:#0b1e3f; border:none; font-size:1.15rem; box-shadow:0 8px 22px rgba(245,158,11,.45); cursor:pointer; opacity:.92; }
 body.has-disc .anahtar-fab{ bottom:calc(7.7rem + env(safe-area-inset-bottom)); }
+.kalem-fab{ position:fixed; right:.7rem; bottom:calc(7.3rem + env(safe-area-inset-bottom)); z-index:66; width:3rem; height:3rem; border-radius:50%; background:linear-gradient(135deg,#7c3aed,#a855f7); color:#fff; border:none; font-size:1.15rem; box-shadow:0 8px 22px rgba(124,58,237,.45); cursor:pointer; opacity:.92; }
+body.has-disc .kalem-fab{ bottom:calc(11rem + env(safe-area-inset-bottom)); }
+#kalem-katman{ position:fixed; inset:0; z-index:120; }
+#kalem-canvas{ position:absolute; inset:0; width:100%; height:100%; touch-action:none; cursor:crosshair; }
+#kalem-arac{ position:fixed; left:50%; transform:translateX(-50%); bottom:calc(1rem + env(safe-area-inset-bottom)); z-index:121; display:flex; align-items:center; gap:.4rem; background:rgba(15,23,42,.92); padding:.5rem .7rem; border-radius:2rem; box-shadow:0 10px 30px rgba(0,0,0,.4); }
+.ka-renk{ width:1.9rem; height:1.9rem; border-radius:50%; border:3px solid #fff; cursor:pointer; padding:0; }
+.ka-renk.sel{ outline:3px solid #fbbf24; }
+.ka-btn{ background:#334155; color:#fff; border:none; border-radius:1rem; padding:.4rem .7rem; font-weight:900; font-size:.8rem; cursor:pointer; }
+.ka-btn.sel{ background:#7c3aed; }
 body.has-disc .qr-fab{ bottom:calc(4.4rem + env(safe-area-inset-bottom)); }
-@media print{ html{ zoom:1 !important; } nav,header .hdr-actions,.ai-disc,.net-toast,#ekran-pill,.qr-fab,.anahtar-fab{ display:none !important; } }
+@media print{ html{ zoom:1 !important; } nav,header .hdr-actions,.ai-disc,.net-toast,#ekran-pill,.qr-fab,.anahtar-fab,.kalem-fab,#kalem-katman{ display:none !important; } }
 .pill-tag{ display:inline-block; font-size:.62rem; font-weight:900; padding:.15rem .5rem; border-radius:.5rem; letter-spacing:.3px; }
 
 /* Kavram Haritası */
@@ -229,6 +238,20 @@ body.has-disc .qr-fab{ bottom:calc(4.4rem + env(safe-area-inset-bottom)); }
 </div>
 <div id="ekran-pill" style="display:none;" onclick="ZIRVE_ekranTikla(event)" title="Ekran modu"><span id="ekran-label">📺 Oto</span><button class="zx" onclick="ZIRVE_ekranGizle(event)">×</button></div>
 <button class="qr-fab hidden" id="qr-fab" onclick="qrAc()" title="QR ile paylaş"><i class="fas fa-qrcode"></i></button>
+<button class="kalem-fab" id="kalem-fab" onclick="kalemAc()" title="Tahta / Kalem — soru üstünde çiz">✏️</button>
+<div id="kalem-katman" style="display:none;">
+  <canvas id="kalem-canvas"></canvas>
+  <div id="kalem-arac">
+    <button class="ka-renk" data-c="#ef4444" style="background:#ef4444;" onclick="kalemRenk('#ef4444')"></button>
+    <button class="ka-renk" data-c="#2563eb" style="background:#2563eb;" onclick="kalemRenk('#2563eb')"></button>
+    <button class="ka-renk" data-c="#059669" style="background:#059669;" onclick="kalemRenk('#059669')"></button>
+    <button class="ka-renk" data-c="#f59e0b" style="background:#f59e0b;" onclick="kalemRenk('#f59e0b')"></button>
+    <button class="ka-renk" data-c="#0f172a" style="background:#0f172a;" onclick="kalemRenk('#0f172a')"></button>
+    <button class="ka-btn" id="ka-silgi" onclick="kalemSilgi()" title="Silgi">🩹</button>
+    <button class="ka-btn" onclick="kalemTemizle()" title="Temizle">🗑️</button>
+    <button class="ka-btn" onclick="kalemKapat()" title="Kapat" style="background:#dc2626; color:#fff;">✕ Kapat</button>
+  </div>
+</div>
 <button class="anahtar-fab" id="anahtar-fab" onclick="anahtarMerkeziAc()" title="Anahtar Merkezi">🔑</button>
 
 <!-- ANAHTAR MERKEZİ MODAL -->
@@ -369,7 +392,7 @@ body.has-disc .qr-fab{ bottom:calc(4.4rem + env(safe-area-inset-bottom)); }
 <div class="overlay" id="ayar-modal">
   <div class="modal">
     <h2><i class="fas fa-cog"></i> Ayarlar <button class="mclose" onclick="ayarKapat()">×</button></h2>
-    <div class="tip-box" style="margin:.2rem 0 1rem;">✅ Yapay zekâ okulun <b>ortak anahtarıyla</b> otomatik açıktır. Aşağıdaki anahtar bölümüyle <b>uğraşmana gerek yok</b>; sadece istersen kendi anahtarını ekleyebilirsin.</div>
+    <div class="tip-box" style="margin:.2rem 0 1rem;">✅ Yapay zekâ okulun <b>ortak anahtarıyla</b> otomatik açıktır. İstersen (kota rahatlığı için) <b>kendi ücretli/ücretsiz anahtarını</b> aşağıdan girip kaydedebilirsin — sadece bu cihazda saklanır.</div>
     <details style="margin-bottom:.5rem;">
       <summary style="font-weight:900; font-size:.9rem; color:#2563eb; cursor:pointer;">🔑 Kendi anahtarını gir (opsiyonel)</summary>
       <div style="margin-top:.7rem;">
@@ -431,6 +454,8 @@ body.has-disc .qr-fab{ bottom:calc(4.4rem + env(safe-area-inset-bottom)); }
       </div>
       <div id="merkez-keyliste" style="margin-top:.5rem;"></div>
       <div id="merkez-sayac" style="font-size:.78rem; font-weight:900; color:#334155; margin-top:.6rem;">Havuzda 0 / 1000 anahtar</div>
+      <button class="btn btn-ghost btn-sm" style="width:100%; margin-top:.5rem; background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe;" onclick="havuzTestEt()">🔎 Havuzdaki Anahtarları Test Et (çalışıyor / kota / geçersiz)</button>
+      <div id="havuz-test" style="margin-top:.5rem;"></div>
       <label class="lbl">📱 Destek / Anahtar için WhatsApp numarası</label>
       <input type="text" class="inp" id="merkez-wa" placeholder="905xxxxxxxxx (başında 90)">
       <div class="hint">Öğrenci/veli “WhatsApp'tan iste” dediğinde bu numaraya mesaj açılır.</div>
@@ -774,8 +799,8 @@ async function canliDurumYukle(){
       +'<span style="background:#fee2e2;color:#991b1b;padding:.2rem .5rem;border-radius:.5rem;">🔴 '+say.yok+'</span>'
       +'<span style="background:#f1f5f9;color:#334155;padding:.2rem .5rem;border-radius:.5rem;">Toplam '+list.length+'</span></div>';
     if(!list.length){ h+='<div style="font-size:.76rem; font-weight:700; color:#94a3b8; text-align:center;">Henüz giriş yok.</div>'; }
-    else { h+=list.slice(0,80).map(x=>{ const d=DURUM_ETIKET[x.durum]||DURUM_ETIKET.hazir; const dk=Math.round((Date.now()-(x.tarih||0))/60000);
-      const ne = dk<2?'az önce':(dk<60?dk+' dk önce':(Math.round(dk/60)+' saat önce'));
+    else { h+=list.slice(0,80).map(x=>{ const d=DURUM_ETIKET[x.durum]||DURUM_ETIKET.hazir; const t=Number(x.tarih)||0; const dk=t?Math.round((Date.now()-t)/60000):-1;
+      const ne = dk<0?'—':(dk<2?'az önce':(dk<60?dk+' dk önce':(dk<1440?Math.round(dk/60)+' saat önce':Math.round(dk/1440)+' gün önce')));
       return '<div style="display:flex; align-items:center; gap:.5rem; padding:.45rem .5rem; border-bottom:1px dashed #e2e8f0;">'
         +'<span style="font-size:1rem;">'+d.e+'</span>'
         +'<div style="flex:1; min-width:0;"><div style="font-weight:800; font-size:.82rem; color:#0f172a;">'+(x.ad||'—')+(x.sinif?(' · '+x.sinif):'')+'</div>'
@@ -1006,6 +1031,26 @@ async function anahtarTestEt(){
     catch(e){ const em=String(e.message); div.innerHTML= /429|quota/i.test(em) ? '<span>🟡</span> Anahtar '+(i+1)+' — kota dolu' : '<span>🔴</span> Anahtar '+(i+1)+' — geçersiz'; }
   }
 }
+/* Yönetici: havuzdaki HER anahtarı GERÇEK çağrıyla test et (çalışıyor/kota/geçersiz) */
+function _maskeKisa(k){ return k.length<=10?k:('…'+k.slice(-5)); }
+async function havuzTestEt(){
+  const box=document.getElementById('havuz-test'); if(!box) return;
+  const keys=anahtarlariAyikla(document.getElementById('merkez-anahtar').value||'');
+  if(!keys.length){ box.innerHTML='<div style="font-size:.76rem; font-weight:700; color:#94a3b8;">Havuzda anahtar yok.</div>'; return; }
+  let ok=0,kota=0,gecersiz=0;
+  box.innerHTML='<div class="typing"><span></span><span></span><span></span></div>';
+  const satir=[];
+  for(let i=0;i<keys.length;i++){
+    let d,e2;
+    try{ await callGeminiRaw(keys[i],'gemini-2.5-flash-lite','Sadece OK yaz.',null); d={e:'🟢',t:'çalışıyor'}; ok++; }
+    catch(e){ const em=String(e.message||''); if(/429|quota|RESOURCE_EXHAUSTED/i.test(em)){ d={e:'🟡',t:'kota dolu / bitmek üzere'}; kota++; } else { d={e:'🔴',t:'geçersiz'}; gecersiz++; } }
+    satir.push('<div style="display:flex; align-items:center; gap:.5rem; padding:.4rem .5rem; border-bottom:1px dashed #e2e8f0;"><span>'+d.e+'</span><span style="flex:1; font-family:monospace; font-size:.74rem; font-weight:700; color:#334155;">Anahtar '+(i+1)+' ('+_maskeKisa(keys[i])+')</span><span style="font-size:.72rem; font-weight:800; color:#64748b;">'+d.t+'</span></div>');
+    box.innerHTML='<div style="font-size:.74rem; font-weight:900; margin-bottom:.4rem;">🟢 '+ok+' çalışıyor · 🟡 '+kota+' kota · 🔴 '+gecersiz+' geçersiz</div>'+satir.join('');
+  }
+  box.innerHTML='<div style="font-size:.76rem; font-weight:900; margin-bottom:.4rem; color:'+(ok?'#059669':'#dc2626')+';">🟢 '+ok+' çalışıyor · 🟡 '+kota+' kota · 🔴 '+gecersiz+' geçersiz</div>'+satir.join('')
+    +(kota?'<div class="hint" style="margin-top:.5rem;">🟡 olanların günlük/dakikalık kotası dolmuş ya da bitmek üzere. Yeni (farklı Google hesabı) anahtar ekleyip Kaydet & Yayınla yap.</div>':'')
+    +(gecersiz?'<div class="hint" style="margin-top:.3rem;">🔴 olanları havuzdan sil (yukarıda × ile).</div>':'');
+}
 
 /* ==================== DISCLAIMER + NET TOAST ==================== */
 function discGoster(){ if(localStorage.getItem('dk_lgs_disc_off')==='1') return; document.getElementById('ai-disc').style.display='flex'; document.body.classList.add('has-disc'); }
@@ -1100,6 +1145,32 @@ function welcKapat(){ document.getElementById('welc-modal').classList.remove('op
     modal();
   };
   window.ZIRVE_pwaBaslat=function(){ ikonUret(); };
+})();
+
+/* ==================== ZİRVE · TAHTA / KALEM (soru üstünde çizim) ==================== */
+(function(){
+  let cv,ctx,ciziyor=false,renk='#ef4444',silgi=false,son=null;
+  function boyutla(){ if(!cv) return; const kayit=ctx?ctx.getImageData(0,0,cv.width,cv.height):null; cv.width=window.innerWidth; cv.height=window.innerHeight; ctx=cv.getContext('2d'); ctx.lineCap='round'; ctx.lineJoin='round'; if(kayit){ try{ ctx.putImageData(kayit,0,0); }catch(e){} } }
+  function nokta(e){ const r=cv.getBoundingClientRect(); const t=(e.touches&&e.touches[0])||e; return { x:(t.clientX-r.left), y:(t.clientY-r.top) }; }
+  function bas(e){ e.preventDefault(); ciziyor=true; son=nokta(e); }
+  function ciz(e){ if(!ciziyor) return; e.preventDefault(); const p=nokta(e);
+    ctx.globalCompositeOperation = silgi?'destination-out':'source-over';
+    ctx.strokeStyle=renk; ctx.lineWidth=silgi?28:4;
+    ctx.beginPath(); ctx.moveTo(son.x,son.y); ctx.lineTo(p.x,p.y); ctx.stroke(); son=p; }
+  function birak(){ ciziyor=false; son=null; }
+  window.kalemAc=function(){
+    const k=document.getElementById('kalem-katman'); k.style.display='block';
+    cv=document.getElementById('kalem-canvas'); boyutla();
+    kalemRenkSec();
+    cv.onpointerdown=bas; cv.onpointermove=ciz; cv.onpointerup=birak; cv.onpointerleave=birak;
+    cv.ontouchstart=bas; cv.ontouchmove=ciz; cv.ontouchend=birak;
+    window.addEventListener('resize',boyutla);
+  };
+  window.kalemKapat=function(){ document.getElementById('kalem-katman').style.display='none'; window.removeEventListener('resize',boyutla); };
+  window.kalemRenk=function(c){ renk=c; silgi=false; kalemRenkSec(); };
+  window.kalemSilgi=function(){ silgi=!silgi; kalemRenkSec(); };
+  window.kalemTemizle=function(){ if(ctx) ctx.clearRect(0,0,cv.width,cv.height); };
+  function kalemRenkSec(){ document.querySelectorAll('#kalem-arac .ka-renk').forEach(b=>b.classList.toggle('sel', !silgi && b.dataset.c===renk)); const s=document.getElementById('ka-silgi'); if(s) s.classList.toggle('sel',silgi); }
 })();
 
 /* ==================== ÖĞRENCİ PROFİLLERİ (isim bazlı) ==================== */
@@ -1279,6 +1350,7 @@ function renderPanel(){
   h+='<button class="btn" style="margin-top:.6rem; background:linear-gradient(135deg,#312e81,#6d28d9); color:#fff;" onclick="git(\'notlar\')"><i class="fas fa-pen-to-square mr-1"></i> Not Defterim (AI kavram kartları)</button>';
   h+='<button class="btn" style="margin-top:.6rem; background:linear-gradient(135deg,#0891b2,#06b6d4); color:#fff;" onclick="profilAc()"><i class="fas fa-fingerprint mr-1"></i> Öğrenme Profilim '+(AKTIF.ogrenmeProfili?'✓':'(ekle → AI kişiselleşir)')+'</button>';
   h+='<button class="btn btn-ghost" style="margin-top:.6rem; background:#f0fdf4; color:#047857; border-color:#6ee7b7;" onclick="oneriAc()"><i class="fas fa-paper-plane mr-1"></i> Barış Hocam\'a İstek / Öneri Gönder</button>';
+  h+='<button class="btn btn-ghost" style="margin-top:.6rem; background:#fffbeb; color:#b45309; border-color:#fde68a;" onclick="youtubeAra(\'LGS birincisi başarı hikayesi motivasyon nasıl çalıştı\')"><i class="fas fa-trophy mr-1"></i> LGS Başarı Hikayeleri (motivasyon)</button>';
   h+='<button class="btn btn-ghost" style="margin-top:.6rem;" onclick="seviyeYenile()"><i class="fas fa-rotate mr-1"></i> Seviye testini yeniden yap</button>';
 
   el.innerHTML=h;
@@ -1303,9 +1375,11 @@ function renderCalis(){
       +'<select class="inp" id="konu-'+d.key+'">'+KONULAR[d.key].map(k=>'<option>'+k+'</option>').join('')+'</select>';
     if(zayif){
       h+='<button class="btn btn-emerald" style="margin-top:.7rem;" onclick="aiAnlat(\''+d.key+'\')"><i class="fas fa-wand-magic-sparkles mr-1"></i> AI Destekli Takviye Anlatımı</button>'
-        +'<div class="row2" style="margin-top:.6rem;"><button class="btn btn-ghost btn-sm" style="width:100%;" onclick="youtubeKonu(\''+d.key+'\')">📺 İzle</button>'
-        +'<button class="btn btn-ghost btn-sm" style="width:100%;" onclick="testBaslat(\''+d.key+'\',\'kolay\')"><i class="fas fa-seedling mr-1"></i> Kolay Test</button></div>'
-        +'<button class="btn btn-ghost" style="margin-top:.6rem;" onclick="testBaslat(\''+d.key+'\',\'orta\')"><i class="fas fa-bars mr-1"></i> Orta Seviye Test</button>';
+        +'<div class="row3" style="margin-top:.6rem;">'
+        +'<button class="btn btn-ghost btn-sm" style="width:100%;" onclick="testBaslat(\''+d.key+'\',\'kolay\')">🟢 Kolay</button>'
+        +'<button class="btn btn-ghost btn-sm" style="width:100%;" onclick="testBaslat(\''+d.key+'\',\'orta\')">🟡 Orta</button>'
+        +'<button class="btn btn-ghost btn-sm" style="width:100%;" onclick="testBaslat(\''+d.key+'\',\'zor\')">🔴 Zor</button></div>'
+        +'<button class="btn btn-ghost btn-sm" style="width:100%; margin-top:.6rem;" onclick="youtubeKonu(\''+d.key+'\')">📺 İzle</button>';
     } else {
       h+='<div class="row3" style="margin-top:.7rem;">'
         +'<button class="btn btn-ghost btn-sm" style="width:100%;" onclick="testBaslat(\''+d.key+'\',\'kolay\')">🟢 Kolay</button>'
@@ -1365,7 +1439,8 @@ async function testBaslat(dk, zorluk, konuOverride){
   const v=document.getElementById('view-quiz');
   v.innerHTML='<div class="card" style="text-align:center;"><div class="big-emoji">'+d.emoji+'</div><h3 style="justify-content:center;">'+d.ad+' · '+konu+'</h3><p style="font-weight:700; color:#64748b;">'+({kolay:'🟢 Kolay',orta:'🟡 Orta',zor:'🔴 Zor'}[zorluk])+' seviye sorular hazırlanıyor...</p><div class="typing" style="justify-content:center;"><span></span><span></span><span></span></div></div>';
   const zt={kolay:'temel bilgi ve tanım ölçen KOLAY',orta:'yorum ve uygulama isteyen ORTA',zor:'yeni nesil, muhakeme ve çoklu adım gerektiren ZOR'}[zorluk];
-  const sys='Sen LGS (8. sınıf) sorusu yazan uzman bir öğretmensin. Sorular MEB müfredatına uygun, 4 şıklı (A-D), net ve tek doğru cevaplı olmalı. Çıktın SADECE JSON.';
+  const brans={tur:'Türkçe',mat:'Matematik',fen:'Fen Bilimleri',ink:'T.C. İnkılap Tarihi',din:'Din Kültürü',ing:'İngilizce'}[dk]||d.ad;
+  const sys='Sen '+brans+' branş öğretmenisin (yapay zeka olduğunu söyleme, gerçek bir LGS öğretmeni gibi davran). Sorular MEB 8. sınıf müfredatına ve 2024-2025-2026 LGS tarzına uygun, 4 şıklı (A-D), net ve tek doğru cevaplı. Çıktın SADECE JSON.';
   try{
     const arr=await callJSON('LGS '+d.ad+' dersi "'+konu+'" konusundan '+zt+' zorlukta 8 soru yaz. Format: [{"q":"soru metni","secenekler":["A şık","B şık","C şık","D şık"],"dogru":0,"cozum":"kısa çözüm"}]. dogru = doğru şıkkın indexi (0-3).', sys);
     if(!Array.isArray(arr)||!arr.length) throw new Error('Bos yanit');
@@ -1405,7 +1480,7 @@ function quizGoster(){
     +bankoRozet
     +'<div class="q-card"><div class="q-text">'+q.q+'</div><div id="opts">';
   q.secenekler.slice(0,4).forEach((o,i)=>{ h+='<button class="opt" onclick="quizCevap('+i+')"><div class="lt">'+String.fromCharCode(65+i)+'</div><div class="ot">'+o+'</div></button>'; });
-  h+='</div><div id="cozum-box"></div></div></div>';
+  h+='</div><button class="btn btn-ghost btn-sm" style="width:100%; margin-top:.3rem; background:#f5f3ff; color:#7c3aed; border-color:#ddd6fe;" onclick="kalemAc()">✏️ Tahtada Çöz (soru üstünde kalemle işaretle)</button><div id="cozum-box"></div></div></div>';
   v.innerHTML=h;
 }
 function quizCevap(i){
@@ -1930,7 +2005,8 @@ function renderKaynak(){
   h+='<div class="card"><h3><i class="fab fa-youtube" style="color:#dc2626;"></i> Ücretsiz Ders Videoları — Hoca Seç</h3><p style="font-size:.8rem; font-weight:700; color:#64748b; margin:0 0 .7rem;">Derse dokun → 5 farklı ücretsiz hoca/kanal <b>yıldızlarıyla</b> çıkar; hangisini istersen ona dokun, o dersin videoları açılır.</p><div class="row2">';
   DERSLER.forEach(d=>{ h+='<button class="btn btn-ghost btn-sm" style="width:100%; text-align:left; border-left:4px solid '+d.renk+';" onclick="hocaSecAc(\''+d.key+'\')">'+d.emoji+' '+d.ad+'</button>'; });
   h+='</div><div id="hocasec-box" style="margin-top:.7rem;"></div>';
-  h+='<button class="btn btn-ghost" style="margin-top:.6rem;" onclick="youtubeAra(\'LGS deneme çözümü yeni nesil sorular 2026\')">🎬 Yeni Nesil Soru Çözümleri</button></div>';
+  h+='<button class="btn btn-ghost" style="margin-top:.6rem;" onclick="youtubeAra(\'LGS deneme çözümü yeni nesil sorular 2026\')">🎬 Yeni Nesil Soru Çözümleri</button>'
+    +'<button class="btn" style="margin-top:.6rem; background:linear-gradient(135deg,#f59e0b,#fbbf24); color:#0b1e3f; font-weight:900;" onclick="youtubeAra(\'LGS birincisi başarı hikayesi nasıl çalıştı tavsiyeler\')">🏆 LGS Başarı Hikayeleri (dereceye girenler)</button></div>';
   // Pomodoro
   h+='<div class="card" style="text-align:center;"><h3 style="justify-content:center;"><i class="fas fa-hourglass-half"></i> Odak Zamanlayıcı (Pomodoro)</h3>'
     +'<p style="font-size:.8rem; font-weight:700; color:#64748b; margin:0 0 .6rem;">25 dakika kesintisiz çalış, 5 dakika mola. Odaklanmanın en bilimsel yolu.</p>'
