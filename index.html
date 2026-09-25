@@ -243,6 +243,8 @@ body.has-disc .qr-fab{ bottom:calc(4.4rem + env(safe-area-inset-bottom)); }
     </div>
     <button class="btn btn-emerald" style="margin-top:.8rem; background:#25d366; border:none;" onclick="anahtarWhatsapp()"><i class="fab fa-whatsapp mr-1"></i> WhatsApp ile Barış Hocam'a gönder</button>
     <button class="btn btn-ghost btn-sm" style="width:100%; margin-top:.6rem;" onclick="acLink('https://aistudio.google.com/apikey')">🔗 Ücretsiz Anahtar Sayfasını Aç</button>
+    <button class="btn btn-primary btn-sm" style="width:100%; margin-top:.6rem;" onclick="aiTani('tani-box-user')">🔍 Neden çalışmıyor? (AI Tanı)</button>
+    <div id="tani-box-user" style="margin-top:.6rem;"></div>
     <div class="hint" style="margin-top:.8rem; line-height:1.5;">🔒 <b>KVKK / Gizlilik:</b> Anahtarlar yalnızca yapay zekâ isteklerinde kullanılır; kişisel verilerin reklam vb. amaçla paylaşılmaz. Ortak anahtar cihazına kalıcı kaydedilmez, buluttan gelir. Kendi anahtarını girersen yalnızca kendi cihazında saklanır.</div>
   </div>
 </div>
@@ -450,6 +452,17 @@ body.has-disc .qr-fab{ bottom:calc(4.4rem + env(safe-area-inset-bottom)); }
       <button class="btn btn-ghost btn-sm" style="width:100%;" onclick="oneriYukle()"><i class="fas fa-rotate mr-1"></i> Önerileri Yenile</button>
       <div id="oneri-liste" style="margin-top:.6rem;"></div>
 
+      <div style="border-top:1px dashed #cbd5e1; margin:1.1rem 0 .6rem;"></div>
+      <label class="lbl" style="margin-top:0;">📡 Canlı Durum <span style="color:#059669;">(kim girdi · AI çalışıyor mu)</span></label>
+      <div class="hint" style="margin-bottom:.4rem;">Uygulamayı açan cihazlar burada görünür: 🟢 çalışıyor · 🔵 hazır · 🟡 kota · 🔴 anahtar yok. (KVKK: yalnız ad + sınıf.)</div>
+      <button class="btn btn-ghost btn-sm" style="width:100%;" onclick="canliDurumYukle()"><i class="fas fa-satellite-dish mr-1"></i> Canlı Durumu Yenile</button>
+      <div id="canli-durum" style="margin-top:.6rem;"></div>
+
+      <div style="border-top:1px dashed #cbd5e1; margin:1.1rem 0 .6rem;"></div>
+      <label class="lbl" style="margin-top:0;">🔍 AI Tanı (sistem sağlık kontrolü)</label>
+      <button class="btn btn-primary btn-sm" style="width:100%;" onclick="aiTani('tani-box-admin')">🔍 Neden çalışmıyor? Kontrol Et</button>
+      <div id="tani-box-admin" style="margin-top:.6rem;"></div>
+
       <div style="margin-top:.9rem; font-size:.82rem; font-weight:800;">
         <div style="margin-bottom:.5rem;">▶️ <span id="merkez-fb" style="color:#2563eb;">☁️ Bulut Senkron (Firebase) kontrol ediliyor…</span></div>
         <div style="cursor:pointer; color:#7c3aed;" onclick="merkezSifreDegistir()">▶️ 🔒 Yönetici Şifresini Değiştir</div>
@@ -655,6 +668,14 @@ function anahtarSirasi(){
 
 /* ---- Firebase: ortak anahtarı buluttan oku / yaz ---- */
 function fbInit(){ try{ if(typeof firebase==='undefined') return false; if(!firebase.apps||!firebase.apps.length) firebase.initializeApp(GOMULU_FIREBASE); FBDB=firebase.firestore(); return true; }catch(e){ FBDB=null; return false; } }
+/* ---- Firestore ince sarmalayıcılar (ZİRVE AI Tanı + Canlı Durum) ---- */
+function fbReady(){ return !!FBDB; }
+async function firestoreGet(path){ if(!FBDB && !fbInit()) throw new Error('Firebase bağlı değil'); const p=path.split('/'); const doc=await FBDB.collection(p[0]).doc(p[1]).get(); return doc.exists?doc.data():null; }
+async function firestoreSet(path,data){ if(!FBDB && !fbInit()) throw new Error('Firebase bağlı değil'); const p=path.split('/'); await FBDB.collection(p[0]).doc(p[1]).set(Object.assign({},data),{merge:true}); }
+async function firestoreList(col){ if(!FBDB && !fbInit()) throw new Error('Firebase bağlı değil'); const snap=await FBDB.collection(col).limit(300).get(); const out=[]; snap.forEach(x=>out.push(Object.assign({id:x.id},x.data()))); return out; }
+/* Son AI durumu: 'ok' | 'kota' | 'hazir' | 'yok' */
+let SON_AI_DURUM = 'hazir';
+function aiDurumHesap(){ if(!hasKey()) return 'yok'; return SON_AI_DURUM; }
 async function merkezYukle(){
   if(!FBDB) return;
   try{
@@ -674,6 +695,95 @@ async function merkezYukle(){
   }catch(e){}
 }
 window.ZIRVE_merkezYukle=merkezYukle;
+
+/* ==================== ZİRVE · AI TANI (otomatik teşhis) ==================== */
+let TANI_METIN='';
+async function aiTani(boxId){
+  const box=document.getElementById(boxId); if(!box) return;
+  const ad=[];
+  function ciz(bitti,hata){
+    let h='<div style="background:#0b1e3f; color:#e2e8f0; border-radius:.9rem; padding:.8rem .9rem; font-size:.82rem; line-height:1.7;">';
+    ad.forEach(a=>{ h+='<div>'+a+'</div>'; });
+    if(hata){ h+='<div style="margin-top:.6rem; background:#7f1d1d; border-radius:.6rem; padding:.6rem .7rem;"><b>⛔ Sorun:</b> '+hata.neden+'<br><b>✅ Çözüm:</b> '+hata.cozum+'</div>'; }
+    else if(bitti){ h+='<div style="margin-top:.6rem; background:#065f46; border-radius:.6rem; padding:.6rem .7rem;"><b>🎉 Her şey çalışıyor!</b> Yapay zekâ aktif.</div>'; }
+    h+='</div>';
+    if(bitti||hata) h+='<button class="btn btn-ghost btn-sm" style="width:100%; margin-top:.5rem;" onclick="taniKopyala()">📋 Nedeni Kopyala</button>';
+    box.innerHTML=h;
+  }
+  TANI_METIN='';
+  // 1. İnternet
+  ad.push('⏳ İnternet kontrol ediliyor…'); ciz();
+  if(!navigator.onLine){ ad[ad.length-1]='🔴 İnternet: yok'; TANI_METIN=taniOzet(ad); return ciz(false,{neden:'Cihazda internet bağlantısı yok.',cozum:'Wi-Fi / mobil veriyi aç, sonra tekrar dene.'}); }
+  ad[ad.length-1]='🟢 İnternet: var';
+  // 2. Firebase bağlı mı
+  ad.push('⏳ Firebase bağlantısı…'); ciz();
+  if(!fbReady() && !fbInit()){ ad[ad.length-1]='🔴 Firebase: bağlı değil'; TANI_METIN=taniOzet(ad); return ciz(false,{neden:'Firebase başlatılamadı (kütüphane engellenmiş olabilir).',cozum:'Sayfayı yenile; uygulama içi tarayıcıdaysan Safari/Chrome\'da aç.'}); }
+  ad[ad.length-1]='🟢 Firebase: bağlı';
+  // 3. Firestore okuma / kurallar
+  ad.push('⏳ Firestore okuma (kurallar)…'); ciz();
+  let merkezDoc=null;
+  try{ merkezDoc=await firestoreGet('ayarlar/merkez'); ad[ad.length-1]='🟢 Firestore okuma: çalışıyor'; }
+  catch(e){ ad[ad.length-1]='🔴 Firestore okuma: HATA'; TANI_METIN=taniOzet(ad); return ciz(false,{neden:'Firestore okunamadı ('+(e.message||'').slice(0,50)+'). Kurallar kapalı olabilir.',cozum:'Firebase Console → Firestore → Rules: read izni açık olmalı (allow read: if true). Yayınla.'}); }
+  // 4. Ortak havuz + kişisel
+  ad.push('⏳ Anahtar havuzu…'); ciz();
+  const ortakSayi=(MERKEZ.anahtarlar||[]).length, kisiselSayi=(RING.keys||[]).length;
+  if(ortakSayi+kisiselSayi===0){ ad[ad.length-1]='🔴 Anahtar: hiç yok (ortak 0, kişisel 0)'; TANI_METIN=taniOzet(ad); return ciz(false,{neden:'Ne ortak havuzda ne de cihazda anahtar var.',cozum:'Yönetici: Merkezi Yönetim → havuza anahtar ekle → Kaydet & Yayınla. Öğrenci: ⚙️ Ayarlar → kendi anahtarını gir.'}); }
+  ad[ad.length-1]='🟢 Anahtar: ortak '+ortakSayi+' · kişisel '+kisiselSayi;
+  // 5. Gerçek AI çağrısı
+  ad.push('⏳ Gerçek AI testi (canlı çağrı)…'); ciz();
+  let calisti=false, sonEm='';
+  for(const key of anahtarSirasi()){
+    for(const m of ['gemini-2.5-flash-lite','gemini-2.5-flash']){
+      try{ const r=await callGeminiRaw(key,m,'Sadece OK yaz.',null); if(r){ calisti=true; break; } }
+      catch(e){ sonEm=String(e.message||''); if(/429|quota/i.test(sonEm)) continue; }
+    }
+    if(calisti) break;
+  }
+  if(calisti){ ad[ad.length-1]='🟢 AI testi: BAŞARILI ✓'; SON_AI_DURUM='ok'; TANI_METIN=taniOzet(ad); try{ heartbeatYaz(); }catch(_){}; return ciz(true,null); }
+  ad[ad.length-1]='🔴 AI testi: başarısız';
+  SON_AI_DURUM = /429|quota/i.test(sonEm)?'kota':'hazir';
+  TANI_METIN=taniOzet(ad);
+  const kotaMi=/429|quota|TUM_DOLU/i.test(sonEm);
+  ciz(false, kotaMi
+    ? {neden:'Tüm anahtarların günlük/dakikalık kotası dolu.',cozum:'Biraz bekle; ya da Merkezi Yönetim\'den havuza yeni (farklı Google hesabı) anahtar ekle. Model otomatik flash-lite\'a düşer.'}
+    : {neden:'Anahtar geçersiz olabilir ('+sonEm.slice(0,50)+').',cozum:'Merkezi Yönetim\'deki anahtarı kontrol et; aistudio.google.com/apikey\'den yeni, kısıtlamasız anahtar oluştur.'});
+}
+function taniOzet(ad){ return 'DEĞİŞİM LGS · AI TANI\n'+ad.join('\n')+'\nDurum: '+aiDurumHesap()+'\nTarih: '+new Date().toLocaleString('tr-TR'); }
+function taniKopyala(){ navigator.clipboard.writeText(TANI_METIN||'').then(()=>alert('Tanı raporu kopyalandı ✓')).catch(()=>{}); }
+
+/* ==================== ZİRVE · CANLI DURUM (heartbeat) ==================== */
+function heartbeatYaz(){
+  if(!AKTIF || !fbReady()) return;
+  const ad=(AKTIF.ad||'').split(' ')[0];   // KVKK: yalnız ad, soyad yok
+  const kayit={ ad, sinif:(AKTIF.sube||''), durum:aiDurumHesap(), tarih:Date.now() };
+  try{ firestoreSet('durum/'+AKTIF.sl, kayit); }catch(e){}
+}
+const DURUM_ETIKET={ ok:{e:'🟢',t:'Çalışıyor'}, hazir:{e:'🔵',t:'Hazır'}, kota:{e:'🟡',t:'Kota dolu'}, yok:{e:'🔴',t:'Anahtar yok'} };
+async function canliDurumYukle(){
+  const box=document.getElementById('canli-durum'); if(!box) return;
+  box.innerHTML='<div class="typing"><span></span><span></span><span></span></div>';
+  try{
+    let list=await firestoreList('durum');
+    list.sort((a,b)=>(b.tarih||0)-(a.tarih||0));
+    const say={ok:0,hazir:0,kota:0,yok:0};
+    list.forEach(x=>{ if(say[x.durum]!=null) say[x.durum]++; });
+    let h='<div style="display:flex; gap:.4rem; flex-wrap:wrap; margin-bottom:.6rem; font-size:.72rem; font-weight:900;">'
+      +'<span style="background:#dcfce7;color:#166534;padding:.2rem .5rem;border-radius:.5rem;">🟢 '+say.ok+'</span>'
+      +'<span style="background:#dbeafe;color:#1e40af;padding:.2rem .5rem;border-radius:.5rem;">🔵 '+say.hazir+'</span>'
+      +'<span style="background:#fef3c7;color:#92400e;padding:.2rem .5rem;border-radius:.5rem;">🟡 '+say.kota+'</span>'
+      +'<span style="background:#fee2e2;color:#991b1b;padding:.2rem .5rem;border-radius:.5rem;">🔴 '+say.yok+'</span>'
+      +'<span style="background:#f1f5f9;color:#334155;padding:.2rem .5rem;border-radius:.5rem;">Toplam '+list.length+'</span></div>';
+    if(!list.length){ h+='<div style="font-size:.76rem; font-weight:700; color:#94a3b8; text-align:center;">Henüz giriş yok.</div>'; }
+    else { h+=list.slice(0,80).map(x=>{ const d=DURUM_ETIKET[x.durum]||DURUM_ETIKET.hazir; const dk=Math.round((Date.now()-(x.tarih||0))/60000);
+      const ne = dk<2?'az önce':(dk<60?dk+' dk önce':(Math.round(dk/60)+' saat önce'));
+      return '<div style="display:flex; align-items:center; gap:.5rem; padding:.45rem .5rem; border-bottom:1px dashed #e2e8f0;">'
+        +'<span style="font-size:1rem;">'+d.e+'</span>'
+        +'<div style="flex:1; min-width:0;"><div style="font-weight:800; font-size:.82rem; color:#0f172a;">'+(x.ad||'—')+(x.sinif?(' · '+x.sinif):'')+'</div>'
+        +'<div style="font-size:.68rem; font-weight:700; color:#94a3b8;">'+d.t+' · '+ne+'</div></div></div>';
+    }).join(''); }
+    box.innerHTML=h;
+  }catch(e){ box.innerHTML='<div style="font-size:.76rem; color:#dc2626; font-weight:700;">Yüklenemedi: '+(e.message||'').slice(0,50)+'</div>'; }
+}
 async function merkezKaydet(payload){
   if(!FBDB){ if(!fbInit()||!FBDB) throw new Error('Firebase bağlanamadı. İnternet ve Firebase ayarlarını kontrol et.'); }
   await FBDB.collection('ayarlar').doc('merkez').set(Object.assign({ guncelleme:Date.now() }, payload), { merge:true });
@@ -797,7 +907,7 @@ async function callText(prompt, system){
   for(let k=0;k<anahtarlar.length;k++){
     const key=anahtarlar[k]; let buAnahtarKota=false;
     for(const m of modeller){
-      try{ const r=await callGeminiRaw(key,m,prompt,sysP); return temizAI(r); }
+      try{ const r=await callGeminiRaw(key,m,prompt,sysP); SON_AI_DURUM='ok'; try{ heartbeatYaz(); }catch(_){}; return temizAI(r); }
       catch(e){ sonHata=e; const em=String(e.message||'');
         if(/429|RESOURCE_EXHAUSTED|quota/i.test(em)){ buAnahtarKota=true; break; } // bu anahtar dolu → sıradaki anahtara
         // 404 / model yok / boş yanıt / geçici hata → sıradaki modeli dene
@@ -805,7 +915,7 @@ async function callText(prompt, system){
     }
     if(!buAnahtarKota) hepsiKota=false;
   }
-  if(hepsiKota) throw new Error('TUM_DOLU');
+  if(hepsiKota){ SON_AI_DURUM='kota'; try{ heartbeatYaz(); }catch(_){}; throw new Error('TUM_DOLU'); }
   throw sonHata||new Error('Bilinmeyen hata');
 }
 async function callJSON(prompt, system){
@@ -1031,6 +1141,7 @@ function acilisAkis(){
   document.getElementById('qr-fab').classList.remove('hidden');
   document.getElementById('hero-ad').innerText=AKTIF.ad+(AKTIF.sube?(' · '+AKTIF.sube):'');
   try{ merkezProfilUygula(); }catch(e){}
+  try{ if(SON_AI_DURUM==='ok'){} else SON_AI_DURUM=hasKey()?'hazir':'yok'; heartbeatYaz(); }catch(e){}
   if(!AKTIF.onboarded){ document.getElementById('main-nav').classList.add('hidden'); renderOnboard(); gorunum('onboard'); }
   else { document.getElementById('main-nav').classList.remove('hidden'); git('panel'); }
   window.scrollTo(0,0);
@@ -1262,11 +1373,32 @@ async function testBaslat(dk, zorluk, konuOverride){
     quizGoster();
   }catch(e){ v.innerHTML='<div class="card"><div class="warn-box">'+hataCevir(e)+'</div><button class="btn btn-ghost" onclick="git(\'calis\')">← Çalışmaya Dön</button> <button class="btn btn-emerald" style="margin-top:.5rem;" onclick="testBaslat(\''+dk+'\',\''+zorluk+'\')">Tekrar Dene</button></div>'; }
 }
+/* AI ile gerçek LGS formatı deneme — branş öğretmeni hazırlar (çıkmış + benzer) */
+async function denemeAIBaslat(){
+  if(!requireKey()) return;
+  const dk=document.getElementById('dnai-ders').value;
+  const zor=document.getElementById('dnai-zor').value||'karisik';
+  const d=DERS[dk];
+  const adet=Math.min(d.soru,15); // token için üst sınır; gerçek LGS soru sayısı bilgisi ayrıca gösterilir
+  gorunum('quiz');
+  const v=document.getElementById('view-quiz');
+  yukleniyor(v, d.ad+' branş öğretmeni LGS denemesi hazırlıyor');
+  const brans={tur:'Türkçe',mat:'Matematik',fen:'Fen Bilimleri',ink:'T.C. İnkılap Tarihi ve Atatürkçülük',din:'Din Kültürü ve Ahlak Bilgisi',ing:'İngilizce'}[dk]||d.ad;
+  const zorMetin={karisik:'gerçek bir LGS denemesindeki gibi kolaydan zora KARIŞIK',kolay:'KOLAY',orta:'ORTA',zor:'ZOR (yeni nesil, uzun/muhakeme)'}[zor];
+  const sys='Sen '+brans+' branş öğretmenisin (yapay zeka olduğunu söyleme, gerçek bir LGS öğretmeni gibi davran). MEB 8. sınıf müfredatına ve KAZANIMLARINA birebir uygun, 2024-2025-2026 LGS merkezî sınavında çıkan soruların TARZINI, ZORLUĞUNU ve YENİ NESİL (uzun metinli, günlük hayat bağlamlı, muhakeme) formatını birebir taklit et. Sorular 4 şıklı (A-D), tek doğru cevaplı. Çıktın SADECE JSON.';
+  try{
+    const arr=await callJSON('LGS '+brans+' dersinden, gerçek sınav formatında '+adet+' adet '+zorMetin+' soru hazırla. Konu dağılımı tüm üniteleri kapsasın (karışık deneme). Bazıları çıkmış sorulara çok benzer, bazıları özgün yeni nesil olsun. Format: [{"q":"soru (gerekirse metin/paragraf dahil)","secenekler":["A","B","C","D"],"dogru":0,"cozum":"kısa çözüm","konu":"kazanım/konu adı"}].', sys);
+    if(!Array.isArray(arr)||!arr.length) throw new Error('Bos yanit');
+    const list=arr.filter(x=>x&&x.q&&Array.isArray(x.secenekler)&&x.secenekler.length>=4);
+    QUIZ={ list, i:0, dogru:0, ders:dk, konu:'LGS Denemesi', zorluk:zor, deneme:true, gercekSoru:d.soru };
+    quizGoster();
+  }catch(e){ v.innerHTML='<div class="card"><div class="warn-box">'+hataCevir(e)+'</div><button class="btn btn-ghost" onclick="git(\'deneme\')">← Denemeler</button> <button class="btn btn-primary" style="margin-top:.5rem;" onclick="denemeAIBaslat()">Tekrar Dene</button></div>'; }
+}
 function quizGoster(){
   const v=document.getElementById('view-quiz'); const q=QUIZ.list[QUIZ.i]; if(!q){ quizBitir(); return; }
   const pct=Math.round(QUIZ.i/QUIZ.list.length*100);
   const dref=DERS[q.ders]||DERS[QUIZ.ders];
-  const baslik = QUIZ.banko ? ('⭐ Çıkabilecek Soru · '+DERS[QUIZ.ders].emoji+' '+DERS[QUIZ.ders].ad) : QUIZ.kisisel ? ('🎯 Kişisel Tekrar'+(dref?(' · '+dref.emoji+' '+dref.ad):'')) : (DERS[QUIZ.ders].emoji+' '+DERS[QUIZ.ders].ad);
+  const baslik = QUIZ.deneme ? ('📝 LGS Denemesi · '+DERS[QUIZ.ders].emoji+' '+DERS[QUIZ.ders].ad) : QUIZ.banko ? ('⭐ Çıkabilecek Soru · '+DERS[QUIZ.ders].emoji+' '+DERS[QUIZ.ders].ad) : QUIZ.kisisel ? ('🎯 Kişisel Tekrar'+(dref?(' · '+dref.emoji+' '+dref.ad):'')) : (DERS[QUIZ.ders].emoji+' '+DERS[QUIZ.ders].ad);
   const bankoRozet = (QUIZ.banko && q.banko) ? '<div style="text-align:center; margin-bottom:.6rem;"><span style="background:#fffbeb; color:#b45309; border:1px solid #fde68a; padding:.25rem .7rem; border-radius:1rem; font-size:.72rem; font-weight:900;">Çıkma ihtimali: '+('⭐'.repeat(Math.max(1,Math.min(3,q.banko))))+'</span></div>' : '';
   let h='<div class="card"><div style="display:flex; justify-content:space-between; font-size:.78rem; font-weight:900; color:#64748b; margin-bottom:.5rem;"><span>'+baslik+'</span><span>Soru '+(QUIZ.i+1)+'/'+QUIZ.list.length+'</span></div>'
     +'<div class="progress-bg"><div class="progress-fill" style="width:'+pct+'%"></div></div>'
@@ -1318,6 +1450,26 @@ function hocaSoruAc(idx){ const q=QUIZ.list[idx]; hocaAc('soru', q); }
 function quizSonraki(){ QUIZ.i++; if(QUIZ.i<QUIZ.list.length) quizGoster(); else quizBitir(); }
 function quizBitir(){
   const v=document.getElementById('view-quiz'); const t=QUIZ.list.length, d=QUIZ.dogru, pct=Math.round(d/t*100);
+  if(QUIZ.deneme){
+    const yanlis=t-d; const net=Math.max(0, d - yanlis/3);
+    const dk=QUIZ.ders, gercek=QUIZ.gercekSoru||DERS[dk].soru;
+    // bu dersin tam soru sayısına ölçekle → tahmini bu ders neti
+    const olcekNet = (net/t)*gercek;
+    const netler={}; DERSLER.forEach(x=>netler[x.key]=0); netler[dk]=olcekNet;
+    const puanKatki = (lgsPuan(netler)-PUAN_TABAN); // sadece bu dersin puana katkısı
+    v.innerHTML='<div class="card" style="text-align:center;"><div class="big-emoji">'+(pct>=80?'🏆':pct>=50?'👍':'🌱')+'</div>'
+      +'<h3 style="justify-content:center;">'+DERS[dk].emoji+' '+DERS[dk].ad+' Denemesi</h3>'
+      +'<div style="display:flex; justify-content:center; gap:1.2rem; margin:.6rem 0;">'
+      +'<div><div style="font-size:1.6rem; font-weight:900; color:#059669;">'+d+'/'+t+'</div><div style="font-size:.7rem; font-weight:800; color:#94a3b8;">DOĞRU</div></div>'
+      +'<div><div style="font-size:1.6rem; font-weight:900; color:#1d4ed8;">'+net.toFixed(2)+'</div><div style="font-size:.7rem; font-weight:800; color:#94a3b8;">NET</div></div>'
+      +'<div><div style="font-size:1.6rem; font-weight:900; color:#b45309;">'+gercek+'\'lik</div><div style="font-size:.7rem; font-weight:800; color:#94a3b8;">'+ (olcekNet).toFixed(1)+' NET</div></div></div>'
+      +'<div class="tip-box" style="margin:.6rem 0;">Bu tempoyla tam '+gercek+' soruluk LGS bölümünde ~<b>'+olcekNet.toFixed(1)+' net</b> yaparsın; bu da puana ~<b>+'+puanKatki.toFixed(1)+'</b> katkı demek. (Net = Doğru − Yanlış/3)</div>'
+      +'<div class="row2" style="margin-top:.8rem;"><button class="btn btn-ghost" onclick="git(\'deneme\')">← Denemeler</button>'
+      +'<button class="btn btn-primary" onclick="denemeAIBaslat()">Yeni Deneme</button></div>'
+      +'<button class="btn btn-emerald" style="margin-top:.6rem;" onclick="denemeAIYorum('+net.toFixed(2)+',\''+dk+'\','+t+','+d+')">🤖 Öğretmen Yorumu Al</button>'
+      +'<div id="dnai-yorum" style="margin-top:.7rem;"></div></div>';
+    profKaydet(); return;
+  }
   const mesaj=pct>=80?'Harika! 🎉 Bu konuyu neredeyse çözdün.':pct>=50?'İyi gidiyor 💪 Yanlışlarını hata defterinden tekrar et.':'Panik yok 🌱 Bu konuyu AI anlatımdan tekrar oku, sonra tekrar dene.';
   v.innerHTML='<div class="card" style="text-align:center;"><div class="big-emoji">'+(pct>=80?'🏆':pct>=50?'👍':'🌱')+'</div>'
     +'<h3 style="justify-content:center;">'+d+' / '+t+' doğru (%'+pct+')</h3>'
@@ -1326,6 +1478,14 @@ function quizBitir(){
     +'<button class="btn btn-emerald" onclick="'+(QUIZ.kisisel?'kisiselTestBaslat()':('testBaslat(\''+QUIZ.ders+'\',\''+QUIZ.zorluk+'\')'))+'">Yeni Test</button></div>'
     +(Object.keys(AKTIF.hatalar).length?'<button class="btn btn-primary" style="margin-top:.6rem;" onclick="git(\'defter\')"><i class="fas fa-book-bookmark mr-1"></i> Zafer Defterime bak</button>':'')+'</div>';
   profKaydet();
+}
+async function denemeAIYorum(net,dk,t,d){
+  if(!requireKey()) return;
+  const box=document.getElementById('dnai-yorum'); yukleniyor(box,'Öğretmen yorumu yazıyor');
+  const sys='Sen '+DERS[dk].ad+' branş öğretmenisin. Öğrencinin deneme sonucunu kısa, samimi ve yapıcı yorumla; 2-3 somut tavsiye ver. Uydurma.';
+  try{ const tx=await callText('Öğrenci '+DERS[dk].ad+' LGS denemesinde '+t+' soruda '+d+' doğru ('+net+' net) yaptı. Kısa değerlendirme + bu dersten puanını artırmak için 3 somut öneri.'+RICH, sys);
+    renderAI(box,'<div class="content-html">'+tx+'</div>');
+  }catch(e){ box.innerHTML='<div class="warn-box">'+hataCevir(e)+'</div>'; }
 }
 function hataEkle(dk,konu,q,secilen){
   if(!AKTIF.hatalar[dk]) AKTIF.hatalar[dk]=[];
@@ -1368,8 +1528,14 @@ function svgLine(points, labels){ // points: number[]
 function renderDeneme(){
   const el=document.getElementById('view-deneme'); const ad=AKTIF.ad.split(' ')[0];
   let h='<div class="card" style="background:linear-gradient(135deg,#12306b,#1e40af); color:#fff; border:none;"><h3 style="color:#fff;"><i class="fas fa-square-poll-vertical"></i> Deneme Analizi</h3><p style="font-weight:700; font-size:.85rem; opacity:.95; margin:0; line-height:1.5;">Denemende her dersten <b>doğru</b> ve <b>yanlış</b> sayını gir; sana tahmini LGS puanını, net dağılımını ve Beylikdüzü hedeflerini göstereyim.</p></div>';
+  // AI ile LGS denemesi (branş öğretmeni hazırlar)
+  h+='<div class="card" style="border:2px solid #1e40af;"><h3 style="color:#1e40af;"><i class="fas fa-robot"></i> AI ile LGS Denemesi Çöz</h3>'
+    +'<p style="font-size:.84rem; font-weight:700; color:#475569; margin:0 0 .7rem; line-height:1.55;">Soruları <b>branş öğretmeni</b> gibi, <b>2024-2025-2026 LGS çıkmış sınav tarzında</b> hazırlar — hem çıkmışa benzer hem yeni nesil özgün sorular. Ders seç, gerçek LGS formatında çöz.</p>'
+    +'<div class="row2"><select class="inp" id="dnai-ders">'+DERSLER.map(d=>'<option value="'+d.key+'">'+d.emoji+' '+d.ad+' ('+d.soru+' soru)</option>').join('')+'</select>'
+    +'<select class="inp" id="dnai-zor"><option value="karisik">Karışık (gerçek deneme)</option><option value="kolay">Kolay</option><option value="orta">Orta</option><option value="zor">Zor</option></select></div>'
+    +'<button class="btn btn-primary" style="margin-top:.7rem;" onclick="denemeAIBaslat()"><i class="fas fa-play mr-1"></i> LGS Denemesini Başlat</button></div>';
   // giriş formu
-  h+='<div class="card"><h3><i class="fas fa-plus"></i> Yeni Deneme Gir</h3>'
+  h+='<div class="card"><h3><i class="fas fa-plus"></i> Elle Deneme Sonucu Gir</h3>'
     +'<input class="inp" id="dn-ad" placeholder="Deneme adı (örn. 3. Kurumsal Deneme)" style="margin-bottom:.6rem;">'
     +'<table class="dtab"><tr><th>Ders</th><th>Doğru</th><th>Yanlış</th><th>Net</th></tr>';
   DERSLER.forEach(d=>{ h+='<tr><td>'+d.emoji+' '+d.ad+'<div style="font-size:.66rem;color:#94a3b8;font-weight:700">'+d.soru+' soru</div></td>'
@@ -2054,6 +2220,7 @@ function merkezPanelAc(){
   ogrProfilListe();
   merkezSayac(); merkezKeyListe();
   try{ oneriYukle(); }catch(e){}
+  try{ canliDurumYukle(); }catch(e){}
 }
 function merkezSayac(){
   const t=document.getElementById('merkez-anahtar').value||'';
@@ -2223,6 +2390,9 @@ async function oneriSil(i){
 window.onload=function(){
   loadSettings(); ringLoad(); updateStatusDot(); populateModels();
   try{ if(fbInit()) merkezYukle(); }catch(e){}
+  // Ortak havuzu 2 dk'da bir ve sekmeye dönünce taze çek; heartbeat de gönder
+  setInterval(()=>{ try{ if(!document.hidden){ merkezYukle(); heartbeatYaz(); } }catch(e){} }, 120000);
+  document.addEventListener('visibilitychange', ()=>{ try{ if(!document.hidden){ merkezYukle(); heartbeatYaz(); } }catch(e){} });
   document.getElementById('ayar-modal').addEventListener('click', e=>{ if(e.target.id==='ayar-modal') ayarKapat(); });
   document.getElementById('qr-modal').addEventListener('click', e=>{ if(e.target.id==='qr-modal') qrKapat(); });
   document.getElementById('hoca-modal').addEventListener('click', e=>{ if(e.target.id==='hoca-modal') hocaKapat(); });
