@@ -248,6 +248,7 @@ body.has-disc .qr-fab{ bottom:calc(4.4rem + env(safe-area-inset-bottom)); }
     <button class="ka-renk" data-c="#f59e0b" style="background:#f59e0b;" onclick="kalemRenk('#f59e0b')"></button>
     <button class="ka-renk" data-c="#0f172a" style="background:#0f172a;" onclick="kalemRenk('#0f172a')"></button>
     <button class="ka-btn" id="ka-silgi" onclick="kalemSilgi()" title="Silgi">🩹</button>
+    <button class="ka-btn" onclick="kalemGeriAl()" title="Geri Al">↶ Geri</button>
     <button class="ka-btn" onclick="kalemTemizle()" title="Temizle">🗑️</button>
     <button class="ka-btn" onclick="kalemKapat()" title="Kapat" style="background:#dc2626; color:#fff;">✕ Kapat</button>
   </div>
@@ -1149,10 +1150,11 @@ function welcKapat(){ document.getElementById('welc-modal').classList.remove('op
 
 /* ==================== ZİRVE · TAHTA / KALEM (soru üstünde çizim) ==================== */
 (function(){
-  let cv,ctx,ciziyor=false,renk='#ef4444',silgi=false,son=null;
+  let cv,ctx,ciziyor=false,renk='#ef4444',silgi=false,son=null,gecmis=[];
   function boyutla(){ if(!cv) return; const kayit=ctx?ctx.getImageData(0,0,cv.width,cv.height):null; cv.width=window.innerWidth; cv.height=window.innerHeight; ctx=cv.getContext('2d'); ctx.lineCap='round'; ctx.lineJoin='round'; if(kayit){ try{ ctx.putImageData(kayit,0,0); }catch(e){} } }
   function nokta(e){ const r=cv.getBoundingClientRect(); const t=(e.touches&&e.touches[0])||e; return { x:(t.clientX-r.left), y:(t.clientY-r.top) }; }
-  function bas(e){ e.preventDefault(); ciziyor=true; son=nokta(e); }
+  function anlikKaydet(){ try{ gecmis.push(ctx.getImageData(0,0,cv.width,cv.height)); if(gecmis.length>25) gecmis.shift(); }catch(e){} }
+  function bas(e){ e.preventDefault(); anlikKaydet(); ciziyor=true; son=nokta(e); }
   function ciz(e){ if(!ciziyor) return; e.preventDefault(); const p=nokta(e);
     ctx.globalCompositeOperation = silgi?'destination-out':'source-over';
     ctx.strokeStyle=renk; ctx.lineWidth=silgi?28:4;
@@ -1160,7 +1162,7 @@ function welcKapat(){ document.getElementById('welc-modal').classList.remove('op
   function birak(){ ciziyor=false; son=null; }
   window.kalemAc=function(){
     const k=document.getElementById('kalem-katman'); k.style.display='block';
-    cv=document.getElementById('kalem-canvas'); boyutla();
+    cv=document.getElementById('kalem-canvas'); boyutla(); gecmis=[];
     kalemRenkSec();
     cv.onpointerdown=bas; cv.onpointermove=ciz; cv.onpointerup=birak; cv.onpointerleave=birak;
     cv.ontouchstart=bas; cv.ontouchmove=ciz; cv.ontouchend=birak;
@@ -1169,7 +1171,8 @@ function welcKapat(){ document.getElementById('welc-modal').classList.remove('op
   window.kalemKapat=function(){ document.getElementById('kalem-katman').style.display='none'; window.removeEventListener('resize',boyutla); };
   window.kalemRenk=function(c){ renk=c; silgi=false; kalemRenkSec(); };
   window.kalemSilgi=function(){ silgi=!silgi; kalemRenkSec(); };
-  window.kalemTemizle=function(){ if(ctx) ctx.clearRect(0,0,cv.width,cv.height); };
+  window.kalemGeriAl=function(){ if(gecmis.length && ctx){ const img=gecmis.pop(); try{ ctx.putImageData(img,0,0); }catch(e){} } };
+  window.kalemTemizle=function(){ if(ctx){ anlikKaydet(); ctx.clearRect(0,0,cv.width,cv.height); } };
   function kalemRenkSec(){ document.querySelectorAll('#kalem-arac .ka-renk').forEach(b=>b.classList.toggle('sel', !silgi && b.dataset.c===renk)); const s=document.getElementById('ka-silgi'); if(s) s.classList.toggle('sel',silgi); }
 })();
 
@@ -1374,7 +1377,7 @@ function renderCalis(){
       +'<label class="lbl" style="margin-top:0;">Konu seç (AI anlatım / test için):</label>'
       +'<select class="inp" id="konu-'+d.key+'">'+KONULAR[d.key].map(k=>'<option>'+k+'</option>').join('')+'</select>';
     if(zayif){
-      h+='<button class="btn btn-emerald" style="margin-top:.7rem;" onclick="aiAnlat(\''+d.key+'\')"><i class="fas fa-wand-magic-sparkles mr-1"></i> AI Destekli Takviye Anlatımı</button>'
+      h+='<button class="btn btn-emerald" style="margin-top:.7rem;" onclick="aiAnlat(\''+d.key+'\')"><i class="fas fa-wand-magic-sparkles mr-1"></i> '+d.ad+' Hocası ile Konu Anlatımı</button>'
         +'<div class="row3" style="margin-top:.6rem;">'
         +'<button class="btn btn-ghost btn-sm" style="width:100%;" onclick="testBaslat(\''+d.key+'\',\'kolay\')">🟢 Kolay</button>'
         +'<button class="btn btn-ghost btn-sm" style="width:100%;" onclick="testBaslat(\''+d.key+'\',\'orta\')">🟡 Orta</button>'
@@ -1440,11 +1443,11 @@ async function testBaslat(dk, zorluk, konuOverride){
   v.innerHTML='<div class="card" style="text-align:center;"><div class="big-emoji">'+d.emoji+'</div><h3 style="justify-content:center;">'+d.ad+' · '+konu+'</h3><p style="font-weight:700; color:#64748b;">'+({kolay:'🟢 Kolay',orta:'🟡 Orta',zor:'🔴 Zor'}[zorluk])+' seviye sorular hazırlanıyor...</p><div class="typing" style="justify-content:center;"><span></span><span></span><span></span></div></div>';
   const zt={kolay:'temel bilgi ve tanım ölçen KOLAY',orta:'yorum ve uygulama isteyen ORTA',zor:'yeni nesil, muhakeme ve çoklu adım gerektiren ZOR'}[zorluk];
   const brans={tur:'Türkçe',mat:'Matematik',fen:'Fen Bilimleri',ink:'T.C. İnkılap Tarihi',din:'Din Kültürü',ing:'İngilizce'}[dk]||d.ad;
-  const sys='Sen '+brans+' branş öğretmenisin (yapay zeka olduğunu söyleme, gerçek bir LGS öğretmeni gibi davran). Sorular MEB 8. sınıf müfredatına ve 2024-2025-2026 LGS tarzına uygun, 4 şıklı (A-D), net ve tek doğru cevaplı. Çıktın SADECE JSON.';
+  const sys='Sen '+brans+' branş öğretmenisin (yapay zeka olduğunu söyleme, gerçek bir LGS öğretmeni gibi davran). Sorular MEB 8. sınıf müfredatına ve 2020-2026 LGS tarzına uygun, 4 şıklı (A-D), net ve tek doğru cevaplı.'+(dk==='ing'?' SORU KÖKÜ VE ŞIKLAR İNGİLİZCE olsun (LGS İngilizce formatı).':'')+' Çıktın SADECE JSON.';
   try{
     const arr=await callJSON('LGS '+d.ad+' dersi "'+konu+'" konusundan '+zt+' zorlukta 8 soru yaz. Format: [{"q":"soru metni","secenekler":["A şık","B şık","C şık","D şık"],"dogru":0,"cozum":"kısa çözüm"}]. dogru = doğru şıkkın indexi (0-3).', sys);
     if(!Array.isArray(arr)||!arr.length) throw new Error('Bos yanit');
-    QUIZ={ list:arr.filter(x=>x&&x.q&&Array.isArray(x.secenekler)&&x.secenekler.length>=4), i:0, dogru:0, ders:dk, konu, zorluk };
+    QUIZ={ list:arr.filter(x=>x&&x.q&&Array.isArray(x.secenekler)&&x.secenekler.length>=4).map(x=>Object.assign(x,{ders:dk})), i:0, dogru:0, ders:dk, konu, zorluk };
     quizGoster();
   }catch(e){ v.innerHTML='<div class="card"><div class="warn-box">'+hataCevir(e)+'</div><button class="btn btn-ghost" onclick="git(\'calis\')">← Çalışmaya Dön</button> <button class="btn btn-emerald" style="margin-top:.5rem;" onclick="testBaslat(\''+dk+'\',\''+zorluk+'\')">Tekrar Dene</button></div>'; }
 }
@@ -1458,22 +1461,49 @@ async function denemeAIBaslat(){
   gorunum('quiz');
   const v=document.getElementById('view-quiz');
   yukleniyor(v, d.ad+' branş öğretmeni LGS denemesi hazırlıyor');
-  const brans={tur:'Türkçe',mat:'Matematik',fen:'Fen Bilimleri',ink:'T.C. İnkılap Tarihi ve Atatürkçülük',din:'Din Kültürü ve Ahlak Bilgisi',ing:'İngilizce'}[dk]||d.ad;
+  const brans=BRANS[dk]||d.ad;
   const zorMetin={karisik:'gerçek bir LGS denemesindeki gibi kolaydan zora KARIŞIK',kolay:'KOLAY',orta:'ORTA',zor:'ZOR (yeni nesil, uzun/muhakeme)'}[zor];
-  const sys='Sen '+brans+' branş öğretmenisin (yapay zeka olduğunu söyleme, gerçek bir LGS öğretmeni gibi davran). MEB 8. sınıf müfredatına ve KAZANIMLARINA birebir uygun, 2024-2025-2026 LGS merkezî sınavında çıkan soruların TARZINI, ZORLUĞUNU ve YENİ NESİL (uzun metinli, günlük hayat bağlamlı, muhakeme) formatını birebir taklit et. Sorular 4 şıklı (A-D), tek doğru cevaplı. Çıktın SADECE JSON.';
+  const ingNot = dk==='ing' ? ' SORU KÖKÜ VE ŞIKLAR İNGİLİZCE olsun (yalnız yönerge Türkçe olabilir); LGS İngilizce formatına uygun.' : '';
+  const sys='Sen '+brans+' branş öğretmenisin (yapay zeka olduğunu söyleme, gerçek bir LGS öğretmeni gibi davran). MEB 8. sınıf müfredatına ve KAZANIMLARINA birebir uygun, 2020-2026 arası LGS merkezî sınavında çıkan soruların TARZINI, ZORLUĞUNU ve YENİ NESİL (uzun metinli, günlük hayat bağlamlı, muhakeme) formatını birebir taklit et. Sorular 4 şıklı (A-D), tek doğru cevaplı.'+ingNot+' Çıktın SADECE JSON.';
   try{
-    const arr=await callJSON('LGS '+brans+' dersinden, gerçek sınav formatında '+adet+' adet '+zorMetin+' soru hazırla. Konu dağılımı tüm üniteleri kapsasın (karışık deneme). Bazıları çıkmış sorulara çok benzer, bazıları özgün yeni nesil olsun. Format: [{"q":"soru (gerekirse metin/paragraf dahil)","secenekler":["A","B","C","D"],"dogru":0,"cozum":"kısa çözüm","konu":"kazanım/konu adı"}].', sys);
+    const arr=await callJSON('LGS '+brans+' dersinden, gerçek sınav formatında '+adet+' adet '+zorMetin+' soru hazırla. Konu dağılımı tüm üniteleri kapsasın (karışık deneme). Bazıları çıkmışa çok benzer, bazıları 2027 için özgün yeni nesil olsun. Format: [{"q":"soru (gerekirse metin/paragraf dahil)","secenekler":["A","B","C","D"],"dogru":0,"cozum":"kısa çözüm","konu":"kazanım/konu adı"}].', sys);
     if(!Array.isArray(arr)||!arr.length) throw new Error('Bos yanit');
-    const list=arr.filter(x=>x&&x.q&&Array.isArray(x.secenekler)&&x.secenekler.length>=4);
+    const list=arr.filter(x=>x&&x.q&&Array.isArray(x.secenekler)&&x.secenekler.length>=4).map(x=>Object.assign(x,{ders:dk}));
     QUIZ={ list, i:0, dogru:0, ders:dk, konu:'LGS Denemesi', zorluk:zor, deneme:true, gercekSoru:d.soru };
     quizGoster();
   }catch(e){ v.innerHTML='<div class="card"><div class="warn-box">'+hataCevir(e)+'</div><button class="btn btn-ghost" onclick="git(\'deneme\')">← Denemeler</button> <button class="btn btn-primary" style="margin-top:.5rem;" onclick="denemeAIBaslat()">Tekrar Dene</button></div>'; }
+}
+const BRANS={tur:'Türkçe',mat:'Matematik',fen:'Fen Bilimleri',ink:'T.C. İnkılap Tarihi ve Atatürkçülük',din:'Din Kültürü ve Ahlak Bilgisi',ing:'İngilizce'};
+/* TAM LGS DENEMESİ — tüm dersler, gerçek soru sayıları, 2 oturum */
+async function tamDenemeBaslat(){
+  if(!requireKey()) return;
+  gorunum('quiz');
+  const v=document.getElementById('view-quiz');
+  // gerçek LGS: Sözel oturum (Türkçe 20, İnkılap 10, Din 10, İng 10) + Sayısal oturum (Mat 20, Fen 20)
+  const plan=[
+    {dk:'tur',n:20,ot:1},{dk:'ink',n:10,ot:1},{dk:'din',n:10,ot:1},{dk:'ing',n:10,ot:1},
+    {dk:'mat',n:20,ot:2},{dk:'fen',n:20,ot:2}
+  ];
+  let tumSorular=[];
+  for(let i=0;i<plan.length;i++){
+    const p=plan[i], d=DERS[p.dk];
+    yukleniyor(v, '📝 Tam LGS Denemesi ('+(i+1)+'/6) — '+d.ad+' hazırlanıyor');
+    const ingNot = p.dk==='ing' ? ' SORU KÖKÜ VE ŞIKLAR İNGİLİZCE olsun.' : '';
+    const sys='Sen '+BRANS[p.dk]+' branş öğretmenisin. 2020-2026 LGS çıkmış soru tarzını ve zorluğunu birebir taklit et; hem çıkmışa benzer hem 2027 için özgün yeni nesil sorular. 4 şıklı (A-D), tek doğru.'+ingNot+' Çıktın SADECE JSON.';
+    try{
+      const arr=await callJSON('LGS '+BRANS[p.dk]+' dersinden gerçek sınav formatında '+p.n+' soru (tüm üniteler karışık). Format: [{"q":"...","secenekler":["A","B","C","D"],"dogru":0,"cozum":"...","konu":"kazanım"}].', sys);
+      (Array.isArray(arr)?arr:[]).filter(x=>x&&x.q&&Array.isArray(x.secenekler)&&x.secenekler.length>=4).forEach(x=>tumSorular.push(Object.assign(x,{ders:p.dk,oturum:p.ot})));
+    }catch(e){ /* bu ders atlansın, devam */ }
+  }
+  if(!tumSorular.length){ v.innerHTML='<div class="card"><div class="warn-box">Deneme hazırlanamadı (kota/anahtar). Tekrar dene.</div><button class="btn btn-ghost" onclick="git(\'deneme\')">← Denemeler</button> <button class="btn btn-primary" style="margin-top:.5rem;" onclick="tamDenemeBaslat()">Tekrar Dene</button></div>'; return; }
+  QUIZ={ list:tumSorular, i:0, dogru:0, ders:tumSorular[0].ders, konu:'Tam LGS Denemesi', zorluk:'karisik', deneme:true, tam:true };
+  quizGoster();
 }
 function quizGoster(){
   const v=document.getElementById('view-quiz'); const q=QUIZ.list[QUIZ.i]; if(!q){ quizBitir(); return; }
   const pct=Math.round(QUIZ.i/QUIZ.list.length*100);
   const dref=DERS[q.ders]||DERS[QUIZ.ders];
-  const baslik = QUIZ.deneme ? ('📝 LGS Denemesi · '+DERS[QUIZ.ders].emoji+' '+DERS[QUIZ.ders].ad) : QUIZ.banko ? ('⭐ Çıkabilecek Soru · '+DERS[QUIZ.ders].emoji+' '+DERS[QUIZ.ders].ad) : QUIZ.kisisel ? ('🎯 Kişisel Tekrar'+(dref?(' · '+dref.emoji+' '+dref.ad):'')) : (DERS[QUIZ.ders].emoji+' '+DERS[QUIZ.ders].ad);
+  const baslik = QUIZ.tam ? ('🎯 TAM LGS Denemesi · '+(q.oturum===2?'2. Oturum (Sayısal)':'1. Oturum (Sözel)')+' · '+dref.emoji+' '+dref.ad) : QUIZ.deneme ? ('📝 LGS Denemesi · '+DERS[QUIZ.ders].emoji+' '+DERS[QUIZ.ders].ad) : QUIZ.banko ? ('⭐ Çıkabilecek Soru · '+DERS[QUIZ.ders].emoji+' '+DERS[QUIZ.ders].ad) : QUIZ.kisisel ? ('🎯 Kişisel Tekrar'+(dref?(' · '+dref.emoji+' '+dref.ad):'')) : (DERS[QUIZ.ders].emoji+' '+DERS[QUIZ.ders].ad);
   const bankoRozet = (QUIZ.banko && q.banko) ? '<div style="text-align:center; margin-bottom:.6rem;"><span style="background:#fffbeb; color:#b45309; border:1px solid #fde68a; padding:.25rem .7rem; border-radius:1rem; font-size:.72rem; font-weight:900;">Çıkma ihtimali: '+('⭐'.repeat(Math.max(1,Math.min(3,q.banko))))+'</span></div>' : '';
   let h='<div class="card"><div style="display:flex; justify-content:space-between; font-size:.78rem; font-weight:900; color:#64748b; margin-bottom:.5rem;"><span>'+baslik+'</span><span>Soru '+(QUIZ.i+1)+'/'+QUIZ.list.length+'</span></div>'
     +'<div class="progress-bg"><div class="progress-fill" style="width:'+pct+'%"></div></div>'
@@ -1486,9 +1516,13 @@ function quizGoster(){
 function quizCevap(i){
   const q=QUIZ.list[QUIZ.i]; const opts=document.querySelectorAll('#opts .opt'); opts.forEach(o=>o.onclick=null);
   const dogru=q.dogru; opts[dogru]&&opts[dogru].classList.add('correct');
-  if(i!==dogru){ opts[i]&&opts[i].classList.add('wrong'); hataEkle(q.ders||QUIZ.ders,q.konu||QUIZ.konu,q,i); } else QUIZ.dogru++;
+  const dk=q.ders||QUIZ.ders;
+  if(!QUIZ.dersSonuc) QUIZ.dersSonuc={};
+  if(!QUIZ.dersSonuc[dk]) QUIZ.dersSonuc[dk]={d:0,y:0};
+  if(!QUIZ.yanlislar) QUIZ.yanlislar=[];
+  if(i!==dogru){ opts[i]&&opts[i].classList.add('wrong'); QUIZ.dersSonuc[dk].y++; QUIZ.yanlislar.push({ders:dk,konu:q.konu||QUIZ.konu,q:q.q}); hataEkle(dk,q.konu||QUIZ.konu,q,i); } else { QUIZ.dogru++; QUIZ.dersSonuc[dk].d++; }
   const cb=document.getElementById('cozum-box');
-  const dk=q.ders||QUIZ.ders, konu=q.konu||QUIZ.konu;
+  const konu=q.konu||QUIZ.konu;
   cb.innerHTML='<div class="cozum"><b>Doğru: '+String.fromCharCode(65+dogru)+'</b> · '+(q.cozum||'')+'</div>'
     +'<div class="row2" style="margin-top:.6rem;">'
     +'<button class="btn btn-ghost btn-sm" style="width:100%;" onclick="sikAnaliz('+QUIZ.i+')">🔍 Şık Şık Analiz</button>'
@@ -1525,6 +1559,7 @@ function hocaSoruAc(idx){ const q=QUIZ.list[idx]; hocaAc('soru', q); }
 function quizSonraki(){ QUIZ.i++; if(QUIZ.i<QUIZ.list.length) quizGoster(); else quizBitir(); }
 function quizBitir(){
   const v=document.getElementById('view-quiz'); const t=QUIZ.list.length, d=QUIZ.dogru, pct=Math.round(d/t*100);
+  if(QUIZ.tam){ return tamDenemeSonuc(); }
   if(QUIZ.deneme){
     const yanlis=t-d; const net=Math.max(0, d - yanlis/3);
     const dk=QUIZ.ders, gercek=QUIZ.gercekSoru||DERS[dk].soru;
@@ -1561,6 +1596,46 @@ async function denemeAIYorum(net,dk,t,d){
   try{ const tx=await callText('Öğrenci '+DERS[dk].ad+' LGS denemesinde '+t+' soruda '+d+' doğru ('+net+' net) yaptı. Kısa değerlendirme + bu dersten puanını artırmak için 3 somut öneri.'+RICH, sys);
     renderAI(box,'<div class="content-html">'+tx+'</div>');
   }catch(e){ box.innerHTML='<div class="warn-box">'+hataCevir(e)+'</div>'; }
+}
+/* TAM DENEME SONUCU — gerçek net→puan, konu-bazlı yanlış analizi, Beylikdüzü okul sıralaması */
+function tamDenemeSonuc(){
+  const v=document.getElementById('view-quiz');
+  const netler={}; DERSLER.forEach(x=>netler[x.key]=0);
+  let toplamD=0, toplamY=0;
+  DERSLER.forEach(x=>{ const s=(QUIZ.dersSonuc&&QUIZ.dersSonuc[x.key])||{d:0,y:0}; const net=Math.max(0, s.d - s.y/3); netler[x.key]=net; toplamD+=s.d; toplamY+=s.y; });
+  const puan=lgsPuan(netler);
+  // denemeye kaydet
+  const dogrular={},yanlislar={}; DERSLER.forEach(x=>{ const s=(QUIZ.dersSonuc&&QUIZ.dersSonuc[x.key])||{d:0,y:0}; dogrular[x.key]=s.d; yanlislar[x.key]=s.y; });
+  AKTIF.denemeler.push({ ad:'Tam LGS Denemesi', tarih:new Date().toISOString(), netler, dogrular, yanlislar, puan }); profKaydet();
+  // ders bazlı net tablosu
+  let dersTablo=DERSLER.map(x=>{ const s=(QUIZ.dersSonuc&&QUIZ.dersSonuc[x.key])||{d:0,y:0}; const net=Math.max(0,s.d-s.y/3);
+    return '<div style="display:flex; align-items:center; gap:.5rem; padding:.4rem .2rem; border-bottom:1px dashed #e2e8f0;"><span style="flex:1; font-weight:800; font-size:.84rem;">'+x.emoji+' '+x.ad+'</span><span style="font-size:.76rem; font-weight:700; color:#64748b;">'+s.d+'D '+s.y+'Y</span><span style="font-weight:900; color:'+x.renk+'; min-width:3rem; text-align:right;">'+net.toFixed(2)+' net</span></div>'; }).join('');
+  // konu bazlı yanlış analizi
+  const konuSay={}; (QUIZ.yanlislar||[]).forEach(y=>{ const k=(DERS[y.ders]?DERS[y.ders].ad:y.ders)+' · '+(y.konu||'—'); konuSay[k]=(konuSay[k]||0)+1; });
+  const konuList=Object.keys(konuSay).sort((a,b)=>konuSay[b]-konuSay[a]);
+  let konuHTML = konuList.length
+    ? '<div class="card"><h3><i class="fas fa-triangle-exclamation" style="color:#dc2626"></i> Konu Bazlı Yanlışların</h3><p style="font-size:.8rem; font-weight:700; color:#64748b; margin:0 0 .6rem;">En çok yanlış yaptığın konular (bunlara çalış). Hepsi Zafer Defterine de eklendi.</p>'
+      + konuList.map(k=>'<div style="display:flex; align-items:center; gap:.5rem; padding:.45rem .2rem; border-bottom:1px dashed #e2e8f0;"><span style="flex:1; font-weight:700; font-size:.82rem; color:#1e293b;">'+k+'</span><span style="background:#fee2e2; color:#b91c1c; font-weight:900; font-size:.74rem; padding:.15rem .5rem; border-radius:.5rem;">'+konuSay[k]+' yanlış</span></div>').join('')
+      + '</div>'
+    : '<div class="card"><div class="tip-box" style="margin:0;">🎉 Hiç yanlışın yok! Muhteşem.</div></div>';
+  // Beylikdüzü okul sıralaması
+  let okulHTML='<div class="card"><h3><i class="fas fa-graduation-cap"></i> '+puan.toFixed(1)+' puanla Beylikdüzü\'nde yerleşebileceğin liseler</h3>'
+    +'<p style="font-size:.78rem; font-weight:700; color:#64748b; margin:0 0 .6rem;">🟢 yerleşirsin · 🟡 sınırda (±10) · 🔴 hedef için yüksel. (Değişim Koleji · Beylikdüzü bazlı, 2026 taban)</p>';
+  BEY_OKULLAR.forEach(o=>{ let cls='kirmizi',dur='🔴 '+(o.p-puan).toFixed(1)+' puan uzak'; if(puan>=o.p){cls='yesil';dur='🟢 Yerleşirsin';} else if(puan>=o.p-10){cls='sari';dur='🟡 '+(o.p-puan).toFixed(1)+' puan';}
+    okulHTML+='<div class="okul-row '+cls+'"><div style="flex:1;"><div class="okul-ad">'+o.ad+'</div><div class="okul-tur"><span class="tur-badge" style="background:'+TUR_RENK[o.tur]+'">'+TUR_AD[o.tur]+'</span> '+dur+'</div></div><div><div class="okul-puan">'+o.p.toFixed(1)+'</div><div class="okul-yuz">%'+o.y+'</div></div></div>'; });
+  okulHTML+='<button class="btn btn-ghost btn-sm" style="width:100%; margin-top:.6rem;" onclick="git(\'hedef\')">Tüm liste & hedef belirle →</button></div>';
+
+  const pctT=Math.round(toplamD/(toplamD+toplamY||1)*100);
+  v.innerHTML='<div class="card" style="text-align:center; background:linear-gradient(135deg,#0b1e3f,#1e40af); color:#fff; border:none;"><div class="big-emoji">'+(puan>=400?'🏆':puan>=300?'💪':'🌱')+'</div>'
+    +'<h3 style="justify-content:center; color:#fff;">Tam LGS Denemesi Bitti!</h3>'
+    +'<div style="font-size:2.6rem; font-weight:900; margin:.3rem 0;">'+puan.toFixed(1)+'</div><div style="font-size:.8rem; font-weight:800; color:#93c5fd;">TAHMİNİ LGS PUANI</div>'
+    +'<div style="margin-top:.6rem; font-size:.82rem; font-weight:800;">'+toplamD+' doğru · '+toplamY+' yanlış · '+(toplamD-toplamY/3).toFixed(2)+' net</div></div>'
+    +'<div class="card"><h3><i class="fas fa-list-check"></i> Ders Bazlı Netlerin</h3>'+dersTablo+'</div>'
+    +konuHTML+okulHTML
+    +'<button class="btn btn-emerald" onclick="tamDenemeBaslat()">🎯 Yeni Tam Deneme</button>'
+    +'<button class="btn btn-primary" style="margin-top:.6rem;" onclick="git(\'defter\')"><i class="fas fa-book-bookmark mr-1"></i> Yanlışları Defterimden Çöz</button>'
+    +'<button class="btn btn-ghost" style="margin-top:.6rem;" onclick="git(\'deneme\')">← Denemeler</button>';
+  window.scrollTo(0,0);
 }
 function hataEkle(dk,konu,q,secilen){
   if(!AKTIF.hatalar[dk]) AKTIF.hatalar[dk]=[];
@@ -1605,10 +1680,12 @@ function renderDeneme(){
   let h='<div class="card" style="background:linear-gradient(135deg,#12306b,#1e40af); color:#fff; border:none;"><h3 style="color:#fff;"><i class="fas fa-square-poll-vertical"></i> Deneme Analizi</h3><p style="font-weight:700; font-size:.85rem; opacity:.95; margin:0; line-height:1.5;">Denemende her dersten <b>doğru</b> ve <b>yanlış</b> sayını gir; sana tahmini LGS puanını, net dağılımını ve Beylikdüzü hedeflerini göstereyim.</p></div>';
   // AI ile LGS denemesi (branş öğretmeni hazırlar)
   h+='<div class="card" style="border:2px solid #1e40af;"><h3 style="color:#1e40af;"><i class="fas fa-robot"></i> AI ile LGS Denemesi Çöz</h3>'
-    +'<p style="font-size:.84rem; font-weight:700; color:#475569; margin:0 0 .7rem; line-height:1.55;">Soruları <b>branş öğretmeni</b> gibi, <b>2024-2025-2026 LGS çıkmış sınav tarzında</b> hazırlar — hem çıkmışa benzer hem yeni nesil özgün sorular. Ders seç, gerçek LGS formatında çöz.</p>'
+    +'<p style="font-size:.84rem; font-weight:700; color:#475569; margin:0 0 .7rem; line-height:1.55;">Soruları <b>branş öğretmeni</b> gibi, <b>2020-2026 arası çıkmış LGS sınav tarzında</b> hazırlar — hem çıkmışa benzer hem 2027 için yeni nesil özgün sorular.</p>'
+    +'<button class="btn btn-emerald" style="margin-bottom:.7rem;" onclick="tamDenemeBaslat()"><i class="fas fa-flag-checkered mr-1"></i> 🎯 TAM LGS DENEMESİ (Tüm Dersler · 90 Soru · 2 Oturum)</button>'
+    +'<p style="font-size:.78rem; font-weight:700; color:#94a3b8; margin:0 0 .6rem;">— ya da tek ders çalış —</p>'
     +'<div class="row2"><select class="inp" id="dnai-ders">'+DERSLER.map(d=>'<option value="'+d.key+'">'+d.emoji+' '+d.ad+' ('+d.soru+' soru)</option>').join('')+'</select>'
     +'<select class="inp" id="dnai-zor"><option value="karisik">Karışık (gerçek deneme)</option><option value="kolay">Kolay</option><option value="orta">Orta</option><option value="zor">Zor</option></select></div>'
-    +'<button class="btn btn-primary" style="margin-top:.7rem;" onclick="denemeAIBaslat()"><i class="fas fa-play mr-1"></i> LGS Denemesini Başlat</button></div>';
+    +'<button class="btn btn-primary" style="margin-top:.7rem;" onclick="denemeAIBaslat()"><i class="fas fa-play mr-1"></i> Tek Ders Denemesi Başlat</button></div>';
   // giriş formu
   h+='<div class="card"><h3><i class="fas fa-plus"></i> Elle Deneme Sonucu Gir</h3>'
     +'<input class="inp" id="dn-ad" placeholder="Deneme adı (örn. 3. Kurumsal Deneme)" style="margin-bottom:.6rem;">'
@@ -2111,11 +2188,11 @@ async function bankoBaslat(dk){
   gorunum('quiz');
   const v=document.getElementById('view-quiz');
   v.innerHTML='<div class="card" style="text-align:center;"><div class="big-emoji">⭐</div><h3 style="justify-content:center;">Çıkabilecek Sorular · '+d.ad+'</h3><p style="font-weight:700; color:#64748b;">"'+konu+'" konusundan geçmiş LGS trendine göre <b>en olası</b> sorular hazırlanıyor...</p><div class="typing" style="justify-content:center;"><span></span><span></span><span></span></div></div>';
-  const sys='Sen LGS soru tahmin uzmanısın. Geçmiş yıllarda MEB\'in bu konudan sorduğu YENİ NESİL soru tarzını taklit et; en sık ölçülen kazanımlara odaklan. 4 şıklı (A-D), tek doğru. Her soruya 1-3 arası "banko" (çıkma ihtimali; 3=çok yüksek) ver. Çıktın SADECE JSON.';
+  const sys='Sen '+(BRANS[dk]||d.ad)+' branş öğretmeni ve LGS soru tahmin uzmanısın. 2020\'den bugüne (2020-2026) MEB LGS\'de bu konudan çıkmış soruları analiz et; en sık ölçülen kazanımlara ve YENİ NESİL soru tarzına odaklanarak 2027 LGS\'de ÇIKMA İHTİMALİ EN YÜKSEK soruları üret. 4 şıklı (A-D), tek doğru. Her soruya 1-3 arası "banko" (çıkma ihtimali; 3=çok yüksek) ver.'+(dk==='ing'?' Soru kökü ve şıklar İngilizce olsun.':'')+' Çıktın SADECE JSON.';
   try{
-    const arr=await callJSON('LGS '+d.ad+' "'+konu+'" konusundan çıkma ihtimali EN YÜKSEK 6 soru üret. Format: [{"q":"...","secenekler":["A","B","C","D"],"dogru":0,"cozum":"...","banko":3}].', sys);
+    const arr=await callJSON('LGS '+d.ad+' "'+konu+'" konusundan 2020-2026 çıkmış soru trendine dayanarak 2027 için çıkma ihtimali EN YÜKSEK 6 soru üret. Format: [{"q":"...","secenekler":["A","B","C","D"],"dogru":0,"cozum":"...","banko":3}].', sys);
     if(!Array.isArray(arr)||!arr.length) throw new Error('Bos yanit');
-    const list=arr.filter(x=>x&&x.q&&Array.isArray(x.secenekler)&&x.secenekler.length>=4);
+    const list=arr.filter(x=>x&&x.q&&Array.isArray(x.secenekler)&&x.secenekler.length>=4).map(x=>Object.assign(x,{ders:dk}));
     QUIZ={ list, i:0, dogru:0, ders:dk, konu, zorluk:'banko', banko:true };
     quizGoster();
   }catch(e){ v.innerHTML='<div class="card"><div class="warn-box">'+hataCevir(e)+'</div><button class="btn btn-ghost" onclick="git(\'calis\')">← Çalışma</button> <button class="btn btn-gold" style="margin-top:.5rem;" onclick="bankoBaslat(\''+dk+'\')">Tekrar Dene</button></div>'; }
