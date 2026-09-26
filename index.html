@@ -273,6 +273,14 @@ body.has-disc .qr-fab{ bottom:calc(4.4rem + env(safe-area-inset-bottom)); }
   </div>
 </div>
 
+<!-- HAFTALIK DEĞERLENDİRME MODAL -->
+<div class="overlay" id="hafta-modal">
+  <div class="modal" style="max-width:560px;">
+    <h2><i class="fas fa-calendar-week"></i> Haftalık Değerlendirme <button class="mclose" onclick="haftaKapat()">×</button></h2>
+    <div id="hafta-body"></div>
+  </div>
+</div>
+
 <div class="ai-disc" id="ai-disc">
   <i class="fas fa-triangle-exclamation w"></i>
   <span>Bu bölümlerdeki içerikler <b>yapay zekâ</b> ile üretilir; %100 doğru olmayabilir. Önemli konularda ders kitabından/öğretmeninden teyit et.</span>
@@ -489,6 +497,11 @@ body.has-disc .qr-fab{ bottom:calc(4.4rem + env(safe-area-inset-bottom)); }
       <button class="btn btn-primary btn-sm" style="width:100%;" onclick="aiTani('tani-box-admin')">🔍 Neden çalışmıyor? Kontrol Et</button>
       <div id="tani-box-admin" style="margin-top:.6rem;"></div>
 
+      <div style="border-top:1px dashed #cbd5e1; margin:1.1rem 0 .6rem;"></div>
+      <label class="lbl" style="margin-top:0;">📅 Haftanın Genel Değerlendirmesi <span style="color:#0e7490;">(tüm öğrencilere)</span></label>
+      <div class="hint" style="margin-bottom:.4rem;">Bu hafta için tüm öğrencilere gidecek mesajını yaz (motivasyon, hedef, duyuru). Kaydet & Yayınla dersen herkesin panelinde ve Haftalık Değerlendirme ekranında görünür.</div>
+      <textarea class="inp" id="merkez-hafta" rows="3" placeholder="Örn: Bu hafta herkes en zayıf 2 dersine yüklensin. Cuma tam LGS denemesi var, hazır olun! 💪"></textarea>
+
       <div style="margin-top:.9rem; font-size:.82rem; font-weight:800;">
         <div style="margin-bottom:.5rem;">▶️ <span id="merkez-fb" style="color:#2563eb;">☁️ Bulut Senkron (Firebase) kontrol ediliyor…</span></div>
         <div style="cursor:pointer; color:#7c3aed;" onclick="merkezSifreDegistir()">▶️ 🔒 Yönetici Şifresini Değiştir</div>
@@ -595,7 +608,7 @@ const GOMULU_FIREBASE = {
 /* Yönetici şifreyle girer (varsayılan aşağıda; panelden değiştirilebilir, buluta yazılır). */
 const VARSAYILAN_SIFRE = "degisim2026";
 let FBDB=null;
-let MERKEZ={ anahtarlar:[], wa:'', duyuru:'', mail:'', sifre:'', yil:'', ogrenciler:{} };
+let MERKEZ={ anahtarlar:[], wa:'', duyuru:'', mail:'', sifre:'', yil:'', hafta:'', ogrenciler:{} };
 
 /* ==================== LGS DERSLERİ ==================== */
 const DERSLER = [
@@ -707,7 +720,7 @@ async function merkezYukle(){
   try{
     const doc=await FBDB.collection('ayarlar').doc('merkez').get();
     if(doc.exists){ const d=doc.data()||{};
-      MERKEZ.wa=d.waNumara||''; MERKEZ.duyuru=d.duyuru||''; MERKEZ.mail=d.yoneticiMail||''; MERKEZ.sifre=d.yoneticiSifre||''; MERKEZ.yil=d.ogretimYili||'';
+      MERKEZ.wa=d.waNumara||''; MERKEZ.duyuru=d.duyuru||''; MERKEZ.mail=d.yoneticiMail||''; MERKEZ.sifre=d.yoneticiSifre||''; MERKEZ.yil=d.ogretimYili||''; MERKEZ.hafta=d.haftaMesaj||'';
       MERKEZ.ogrenciler=(d.ogrenciler && typeof d.ogrenciler==='object')?d.ogrenciler:{};
       // havuz: yeni ortakAnahtarlar dizisi + eski tekil ortakAnahtar (geriye dönük)
       let havuz=[];
@@ -1354,6 +1367,7 @@ function renderPanel(){
   h+='<button class="btn" style="margin-top:.6rem; background:linear-gradient(135deg,#0891b2,#06b6d4); color:#fff;" onclick="profilAc()"><i class="fas fa-fingerprint mr-1"></i> Öğrenme Profilim '+(AKTIF.ogrenmeProfili?'✓':'(ekle → AI kişiselleşir)')+'</button>';
   h+='<button class="btn btn-ghost" style="margin-top:.6rem; background:#f0fdf4; color:#047857; border-color:#6ee7b7;" onclick="oneriAc()"><i class="fas fa-paper-plane mr-1"></i> Barış Hocam\'a İstek / Öneri Gönder</button>';
   h+='<button class="btn btn-ghost" style="margin-top:.6rem; background:#fffbeb; color:#b45309; border-color:#fde68a;" onclick="youtubeAra(\'LGS birincisi başarı hikayesi motivasyon nasıl çalıştı\')"><i class="fas fa-trophy mr-1"></i> LGS Başarı Hikayeleri (motivasyon)</button>';
+  h+='<button class="btn" style="margin-top:.6rem; background:linear-gradient(135deg,#0e7490,#06b6d4); color:#fff;" onclick="haftalikAc()"><i class="fas fa-calendar-week mr-1"></i> Haftalık Değerlendirmem (İstatistik + Kazanım)</button>';
   h+='<button class="btn btn-ghost" style="margin-top:.6rem;" onclick="seviyeYenile()"><i class="fas fa-rotate mr-1"></i> Seviye testini yeniden yap</button>';
 
   el.innerHTML=h;
@@ -1613,9 +1627,11 @@ function tamDenemeSonuc(){
   // konu bazlı yanlış analizi
   const konuSay={}; (QUIZ.yanlislar||[]).forEach(y=>{ const k=(DERS[y.ders]?DERS[y.ders].ad:y.ders)+' · '+(y.konu||'—'); konuSay[k]=(konuSay[k]||0)+1; });
   const konuList=Object.keys(konuSay).sort((a,b)=>konuSay[b]-konuSay[a]);
+  // yanlış konuları derse eşle (tıklayınca o derse git)
+  const konuDers={}; (QUIZ.yanlislar||[]).forEach(y=>{ const k=(DERS[y.ders]?DERS[y.ders].ad:y.ders)+' · '+(y.konu||'—'); konuDers[k]=y.ders; });
   let konuHTML = konuList.length
-    ? '<div class="card"><h3><i class="fas fa-triangle-exclamation" style="color:#dc2626"></i> Konu Bazlı Yanlışların</h3><p style="font-size:.8rem; font-weight:700; color:#64748b; margin:0 0 .6rem;">En çok yanlış yaptığın konular (bunlara çalış). Hepsi Zafer Defterine de eklendi.</p>'
-      + konuList.map(k=>'<div style="display:flex; align-items:center; gap:.5rem; padding:.45rem .2rem; border-bottom:1px dashed #e2e8f0;"><span style="flex:1; font-weight:700; font-size:.82rem; color:#1e293b;">'+k+'</span><span style="background:#fee2e2; color:#b91c1c; font-weight:900; font-size:.74rem; padding:.15rem .5rem; border-radius:.5rem;">'+konuSay[k]+' yanlış</span></div>').join('')
+    ? '<div class="card"><h3><i class="fas fa-triangle-exclamation" style="color:#dc2626"></i> Konu Bazlı Yanlışların</h3><p style="font-size:.8rem; font-weight:700; color:#64748b; margin:0 0 .6rem;">Her satıra dokun → o dersin çalışmasına git, eksiği hemen kapat. Hepsi Zafer Defterine de eklendi.</p>'
+      + konuList.map(k=>{ const dk=konuDers[k]||'tur'; return '<div onclick="calisDers(\''+dk+'\')" style="display:flex; align-items:center; gap:.5rem; padding:.55rem .4rem; border-bottom:1px dashed #e2e8f0; cursor:pointer; background:#fff7ed; border-radius:.6rem; margin-bottom:.35rem;"><span style="flex:1; font-weight:700; font-size:.82rem; color:#1e293b;">'+k+'</span><span style="background:#fee2e2; color:#b91c1c; font-weight:900; font-size:.74rem; padding:.15rem .5rem; border-radius:.5rem;">'+konuSay[k]+' yanlış</span><i class="fas fa-arrow-right" style="color:#f59e0b;"></i></div>'; }).join('')
       + '</div>'
     : '<div class="card"><div class="tip-box" style="margin:0;">🎉 Hiç yanlışın yok! Muhteşem.</div></div>';
   // Beylikdüzü okul sıralaması
@@ -1637,6 +1653,67 @@ function tamDenemeSonuc(){
     +'<button class="btn btn-ghost" style="margin-top:.6rem;" onclick="git(\'deneme\')">← Denemeler</button>';
   window.scrollTo(0,0);
 }
+
+/* ==================== HAFTALIK DEĞERLENDİRME (öğrenci self + yönetici duyurusu) ==================== */
+function haftaBaslangic(){ const d=new Date(); const g=(d.getDay()+6)%7; d.setDate(d.getDate()-g); d.setHours(0,0,0,0); return d.getTime(); }
+function haftaIstatistik(){
+  const bas=haftaBaslangic();
+  const dn=(AKTIF.denemeler||[]).filter(x=>new Date(x.tarih).getTime()>=bas);
+  const kayit=(AKTIF.kayitlar||[]).filter(x=>{ const t=new Date(x.tarih).getTime(); return !isNaN(t)&&t>=bas; });
+  let hataHafta=0; Object.keys(AKTIF.hatalar||{}).forEach(dk=>{ (AKTIF.hatalar[dk]||[]).forEach(h=>{ if(new Date(h.tarih).getTime()>=bas) hataHafta++; }); });
+  let okunanHafta=0; // konu takibi tarihsiz olabilir; toplam ilerleme kullan
+  const sonP=dn.length?dn[dn.length-1].puan:(AKTIF.denemeler.length?AKTIF.denemeler[AKTIF.denemeler.length-1].puan:null);
+  const ilkP=dn.length?dn[0].puan:null;
+  const artis=(dn.length>=2)?(sonP-ilkP):0;
+  // en zayıf dersler
+  const guc=DERSLER.map(d=>({d,g:dersGuc(d.key)})).sort((a,b)=>a.g-b.g);
+  // en çok yanlış konular (hafta)
+  const konuSay={}; Object.keys(AKTIF.hatalar||{}).forEach(dk=>{ (AKTIF.hatalar[dk]||[]).forEach(h=>{ if(new Date(h.tarih).getTime()>=bas){ const k=(DERS[dk]?DERS[dk].ad:dk)+' · '+(h.konu||'—'); konuSay[k]=(konuSay[k]||0)+1; } }); });
+  const zorKonu=Object.keys(konuSay).sort((a,b)=>konuSay[b]-konuSay[a]).slice(0,5);
+  return { dn, kayit, hataHafta, sonP, artis, guc, konuSay, zorKonu };
+}
+function haftalikAc(){
+  if(!AKTIF) return;
+  document.getElementById('hafta-modal').classList.add('open');
+  renderHaftalik();
+}
+function haftaKapat(){ document.getElementById('hafta-modal').classList.remove('open'); }
+function renderHaftalik(){
+  const box=document.getElementById('hafta-body'); const s=haftaIstatistik(); const ad=AKTIF.ad.split(' ')[0];
+  const bas=new Date(haftaBaslangic());
+  let h='<p style="font-size:.8rem; font-weight:700; color:#64748b; margin:0 0 .8rem;">'+bas.toLocaleDateString('tr-TR',{day:'numeric',month:'long'})+' haftası · '+ad+'</p>';
+  // yönetici duyurusu
+  if(MERKEZ.hafta){ h+='<div class="banko" style="margin:0 0 .9rem;">📣 <b>Değişim Koleji · Haftanın Mesajı:</b><br>'+MERKEZ.hafta+'</div>'; }
+  // istatistik kutuları
+  h+='<div style="display:grid; grid-template-columns:1fr 1fr; gap:.5rem; margin-bottom:.9rem;">'
+    +'<div style="background:#eff6ff; border-radius:.9rem; padding:.7rem; text-align:center;"><div style="font-size:1.5rem; font-weight:900; color:#1d4ed8;">'+s.dn.length+'</div><div style="font-size:.7rem; font-weight:800; color:#64748b;">BU HAFTA DENEME</div></div>'
+    +'<div style="background:#ecfdf5; border-radius:.9rem; padding:.7rem; text-align:center;"><div style="font-size:1.5rem; font-weight:900; color:#059669;">'+(s.sonP!=null?s.sonP.toFixed(0):'—')+'</div><div style="font-size:.7rem; font-weight:800; color:#64748b;">SON PUAN</div></div>'
+    +'<div style="background:'+(s.artis>=0?'#ecfdf5':'#fef2f2')+'; border-radius:.9rem; padding:.7rem; text-align:center;"><div style="font-size:1.5rem; font-weight:900; color:'+(s.artis>=0?'#059669':'#dc2626')+';">'+(s.artis>=0?'+':'')+s.artis.toFixed(0)+'</div><div style="font-size:.7rem; font-weight:800; color:#64748b;">PUAN DEĞİŞİMİ</div></div>'
+    +'<div style="background:#fffbeb; border-radius:.9rem; padding:.7rem; text-align:center;"><div style="font-size:1.5rem; font-weight:900; color:#b45309;">'+s.hataHafta+'</div><div style="font-size:.7rem; font-weight:800; color:#64748b;">DEFTERE HATA</div></div></div>';
+  // en zayıf 3 ders
+  h+='<div style="font-weight:900; font-size:.85rem; color:#0f172a; margin-bottom:.4rem;">🎯 Bu Hafta Öncelik (en zayıf 3 ders)</div>';
+  s.guc.slice(0,3).forEach(x=>{ h+='<div onclick="haftaKapat();calisDers(\''+x.d.key+'\')" style="display:flex; align-items:center; gap:.5rem; padding:.5rem .6rem; background:#f8fafc; border-radius:.7rem; margin-bottom:.4rem; cursor:pointer; border-left:4px solid '+LVL_RENK[x.g]+';"><span style="flex:1; font-weight:800; font-size:.84rem;">'+x.d.emoji+' '+x.d.ad+'</span><span style="font-size:.72rem; font-weight:900; color:'+LVL_RENK[x.g]+';">'+LVL_AD[x.g]+'</span><i class="fas fa-arrow-right" style="color:#94a3b8;"></i></div>'; });
+  // en çok yanlış konular
+  if(s.zorKonu.length){ h+='<div style="font-weight:900; font-size:.85rem; color:#0f172a; margin:.7rem 0 .4rem;">📌 Çok Yanlış Yaptığın Konular</div>';
+    s.zorKonu.forEach(k=>{ h+='<div style="display:flex; align-items:center; gap:.5rem; padding:.4rem .5rem; border-bottom:1px dashed #e2e8f0;"><span style="flex:1; font-weight:700; font-size:.8rem;">'+k+'</span><span style="background:#fee2e2; color:#b91c1c; font-weight:900; font-size:.72rem; padding:.1rem .45rem; border-radius:.4rem;">'+s.konuSay[k]+'</span></div>'; }); }
+  // AI haftalık koç yorumu
+  h+='<button class="btn btn-emerald" style="margin-top:1rem;" onclick="haftalikAIYorum()"><i class="fas fa-wand-magic-sparkles mr-1"></i> Koçum Bu Haftamı Değerlendirsin</button>'
+    +'<div id="hafta-ai" style="margin-top:.7rem;"></div>';
+  box.innerHTML=h;
+}
+async function haftalikAIYorum(){
+  if(!requireKey()) return;
+  const box=document.getElementById('hafta-ai'); yukleniyor(box,'Koçun haftanı değerlendiriyor');
+  const s=haftaIstatistik(); const ad=AKTIF.ad.split(' ')[0];
+  const zayif=s.guc.slice(0,3).map(x=>x.d.ad).join(', ');
+  const veri='Öğrenci '+ad+'. Bu hafta: '+s.dn.length+' deneme, son tahmini puan '+(s.sonP!=null?s.sonP.toFixed(0):'yok')+', puan değişimi '+s.artis.toFixed(0)+', deftere '+s.hataHafta+' hata. En zayıf dersler: '+zayif+'. Çok yanlış konular: '+(s.zorKonu.join('; ')||'yok')+'.';
+  const sys='Sen '+ad+'\'in LGS koçusun. Haftalık değerlendirme yaz: samimi, motive edici, dürüst. Kısa tut. Uydurma; sadece verilen verilere dayan.';
+  try{
+    const t=await callText(veri+'\n\nHaftalık değerlendirme: <h4>📊 Bu Hafta Nasıl Geçti</h4> (2-3 cümle), <h4>✅ İyi Gidenler</h4>, <h4>⚠️ Dikkat Edilecekler</h4>, <h4>🎯 Gelecek Hafta 3 Hedef</h4> (somut, ölçülebilir), <h4>💪 Koçtan Söz</h4> (tek cümle).'+RICH, sys);
+    renderAI(box,'<div class="content-html">'+t+'</div>');
+  }catch(e){ box.innerHTML='<div class="warn-box">'+hataCevir(e)+'</div>'; }
+}
+
 function hataEkle(dk,konu,q,secilen){
   if(!AKTIF.hatalar[dk]) AKTIF.hatalar[dk]=[];
   AKTIF.hatalar[dk].push({ konu, q:q.q, dogru:q.secenekler[q.dogru], cozum:q.cozum||'', tarih:new Date().toISOString() });
@@ -2367,6 +2444,7 @@ function merkezPanelAc(){
   document.getElementById('merkez-panel').style.display='block';
   document.getElementById('merkez-kimlik').innerText = MERKEZ.mail || 'Yönetici';
   document.getElementById('merkez-yil').value = MERKEZ.yil || '';
+  { const hf=document.getElementById('merkez-hafta'); if(hf) hf.value = MERKEZ.hafta || ''; }
   document.getElementById('merkez-anahtar').value = (MERKEZ.anahtarlar||[]).join('\n');
   document.getElementById('merkez-wa').value = MERKEZ.wa || '';
   const fb=document.getElementById('merkez-fb'); if(fb) fb.innerHTML = FBDB ? '☁️ Bulut Senkron (Firebase) ✅ bağlı' : '☁️ Bulut Senkron: ⚠️ bağlı değil (internet?)';
@@ -2438,12 +2516,13 @@ async function merkezYaz(){
   const havuz=anahtarlariAyikla(document.getElementById('merkez-anahtar').value||'').slice(0,1000);
   const wa=(document.getElementById('merkez-wa').value||'').trim();
   const yil=(document.getElementById('merkez-yil').value||'').trim();
+  const hafta=((document.getElementById('merkez-hafta')||{}).value||'').trim();
   const box=document.getElementById('merkez-sonuc'); box.style.color='#64748b'; box.innerHTML='<i class="fas fa-spinner fa-spin mr-1"></i> Firebase\'e kaydediliyor...';
   try{
-    const payload={ ortakAnahtarlar:havuz, waNumara:wa, ogretimYili:yil, ogrenciler:MERKEZ.ogrenciler||{}, ortakAnahtar:firebase.firestore.FieldValue.delete() };
+    const payload={ ortakAnahtarlar:havuz, waNumara:wa, ogretimYili:yil, haftaMesaj:hafta, ogrenciler:MERKEZ.ogrenciler||{}, ortakAnahtar:firebase.firestore.FieldValue.delete() };
     if(MERKEZ.sifre) payload.yoneticiSifre=MERKEZ.sifre;
     await merkezKaydet(payload);
-    MERKEZ.anahtarlar=havuz; MERKEZ.wa=wa; MERKEZ.yil=yil;   // ortak havuz yalnız bellekte; cihaza yazılmaz
+    MERKEZ.anahtarlar=havuz; MERKEZ.wa=wa; MERKEZ.yil=yil; MERKEZ.hafta=hafta;   // ortak havuz yalnız bellekte; cihaza yazılmaz
     updateStatusDot(); populateModels();
     box.style.color='#059669'; box.innerHTML='<i class="fas fa-check-circle mr-1"></i> Yayınlandı! '+havuz.length+' anahtar bulutta. Artık uygulamayı açan <b>herkeste</b> AI otomatik açık. ✅';
     merkezSayac(); merkezKeyListe();
@@ -2553,6 +2632,7 @@ window.onload=function(){
   document.getElementById('merkez-modal').addEventListener('click', e=>{ if(e.target.id==='merkez-modal') merkezKapat(); });
   document.getElementById('oneri-modal').addEventListener('click', e=>{ if(e.target.id==='oneri-modal') oneriKapat(); });
   document.getElementById('anahtar-modal').addEventListener('click', e=>{ if(e.target.id==='anahtar-modal') anahtarMerkeziKapat(); });
+  document.getElementById('hafta-modal').addEventListener('click', e=>{ if(e.target.id==='hafta-modal') haftaKapat(); });
   document.getElementById('profil-modal').addEventListener('click', e=>{ if(e.target.id==='profil-modal') profilKapat(); });
   renderStuList();
   try{ ZIRVE_ekranBaslat(); }catch(e){}
