@@ -195,6 +195,14 @@ body.has-disc .kalem-fab{ bottom:calc(11rem + env(safe-area-inset-bottom)); }
 .ka-btn{ background:#334155; color:#fff; border:none; border-radius:1rem; padding:.4rem .7rem; font-weight:900; font-size:.8rem; cursor:pointer; }
 .ka-btn.sel{ background:#7c3aed; }
 body.has-disc .qr-fab{ bottom:calc(4.4rem + env(safe-area-inset-bottom)); }
+/* Sürüm 3.0: yüzen düğmeler ekrandan kaldırıldı → hepsi ⚙️ Ayarlar › Araçlar'da (sade ekran) */
+.qr-fab, .anahtar-fab, .kalem-fab, #ekran-pill{ display:none !important; }
+.arac-grid{ display:grid; grid-template-columns:1fr 1fr; gap:.5rem; }
+.arac-grid .btn{ width:100%; padding:.75rem .5rem; font-size:.85rem; }
+.kasa-kart{ background:linear-gradient(135deg,#0b1e3f,#1e3a8a); color:#fff; border-radius:1.1rem; padding:1rem; margin-top:1rem; }
+.kasa-kart .lbl{ color:#bfdbfe; }
+.kasa-kart .inp{ background:#fff; }
+.kasa-kart .btn-big{ width:100%; padding:.9rem; font-size:1rem; font-weight:900; }
 @media print{ html{ zoom:1 !important; } nav,header .hdr-actions,.ai-disc,.net-toast,#ekran-pill,.qr-fab,.anahtar-fab,.kalem-fab,#kalem-katman{ display:none !important; } }
 .pill-tag{ display:inline-block; font-size:.62rem; font-weight:900; padding:.15rem .5rem; border-radius:.5rem; letter-spacing:.3px; }
 
@@ -433,8 +441,19 @@ body.has-disc .qr-fab{ bottom:calc(4.4rem + env(safe-area-inset-bottom)); }
       </div>
       <button class="btn btn-emerald btn-sm" id="wa-btn" style="width:100%; margin-top:.7rem; background:#25d366; border:none;" onclick="whatsappIste()"><i class="fab fa-whatsapp mr-1"></i> WhatsApp'tan yardım/anahtar iste</button>
     </details>
-    <button class="btn btn-ghost btn-sm" style="width:100%; margin-top:1rem; background:#eef2ff; color:#3730a3; border-color:#c7d2fe;" onclick="merkezAc()"><i class="fas fa-user-shield mr-1"></i> Merkezi Yönetim (Yönetici)</button>
+    <div style="margin-top:1.1rem; font-weight:900; font-size:.9rem; color:#0f172a;">🧰 Araçlar</div>
+    <div class="arac-grid" style="margin-top:.5rem;">
+      <button class="btn btn-ghost" onclick="ayarKapat();kalemAc()">✏️ Tahta / Kalem</button>
+      <button class="btn btn-ghost" onclick="ayarKapat();anahtarMerkeziAc()">🔑 Anahtar Merkezi</button>
+      <button class="btn btn-ghost" onclick="ayarKapat();qrAc()">📱 QR ile Paylaş</button>
+      <button class="btn btn-ghost" id="ayar-ekran-btn" onclick="ayarEkranDegis()">📺 Ekran: Oto</button>
+    </div>
+    <button class="btn btn-ghost btn-sm" style="width:100%; margin-top:.6rem; background:#fff7ed; color:#c2410c; border-color:#fed7aa;" onclick="bildirimAc('ogrenci')">🔔 Bildirimleri Aç (duyurular gelsin)</button>
+    <div class="hint" style="margin-top:.3rem;">📱 iPhone'da bildirim için önce <b>Ana Ekrana Ekle</b>, sonra uygulamayı ana ekrandaki simgeden açıp bu düğmeye bas.</div>
+    <div id="bildirim-sonuc" style="margin-top:.4rem; font-weight:800; font-size:.8rem;"></div>
     <button class="btn btn-ghost btn-sm" style="width:100%; margin-top:.6rem; background:#ecfdf5; color:#047857; border-color:#6ee7b7;" onclick="ZIRVE_anaEkraneEkle()"><i class="fas fa-mobile-screen-button mr-1"></i> Ana Ekrana Uygulama Olarak Ekle</button>
+    <button class="btn btn-ghost btn-sm" style="width:100%; margin-top:1rem; background:#eef2ff; color:#3730a3; border-color:#c7d2fe;" onclick="merkezAc()"><i class="fas fa-user-shield mr-1"></i> Merkezi Yönetim (Yönetici)</button>
+    <div style="text-align:center; margin-top:.8rem; font-size:.68rem; font-weight:800; color:#94a3b8;">LGS Zafer Sistemi · Sürüm 3.0 (Kasa)</div>
   </div>
 </div>
 
@@ -451,6 +470,38 @@ body.has-disc .qr-fab{ bottom:calc(4.4rem + env(safe-area-inset-bottom)); }
     </div>
     <div id="merkez-panel" style="display:none;">
       <div class="warn-box" style="margin:.2rem 0 1rem;"><i class="fas fa-user-shield"></i> <b>Kurucu yetkisi aktif</b><br>Giriş: ☁️ <span id="merkez-kimlik">Yönetici</span><br>Buradaki ayarlar <b>tüm cihazlara (bulut)</b> uygulanır.</div>
+
+      <!-- 🔐 ANAHTAR KASASI (Cloudflare) — yalnız yönetici -->
+      <div class="kasa-kart">
+        <div style="font-size:1.1rem; font-weight:900;">🔐 Anahtar Kasası</div>
+        <div style="font-size:.76rem; font-weight:700; color:#bfdbfe; margin:.2rem 0 .6rem; line-height:1.45;">Yapay zekâ anahtarları Cloudflare kasasında saklanır; kodda ve telefonlarda anahtar olmaz. Kasa çalışmazsa uygulama otomatik eski yönteme (ortak havuz) döner.</div>
+        <label class="lbl" style="margin-top:0;">Kasa adresi</label>
+        <input type="text" class="inp" id="kasa-url" placeholder="https://degisim-kasa.barilkay466.workers.dev" autocapitalize="off" autocorrect="off" spellcheck="false">
+        <div class="row2" style="margin-top:.5rem;">
+          <button class="btn btn-emerald btn-sm" style="width:100%;" onclick="kasaKaydet()">💾 Kaydet</button>
+          <button class="btn btn-gold btn-sm" style="width:100%;" onclick="kasaTest()">🩺 Test et</button>
+        </div>
+        <div id="kasa-durum" style="margin-top:.6rem; font-weight:800; font-size:.84rem;"></div>
+
+        <div style="margin-top:1rem; font-weight:900; font-size:.95rem;">🗝️ Kasaya anahtar ekle</div>
+        <label class="lbl">🔒 Kasa şifresi</label>
+        <input type="password" class="inp" id="kasa-sifre" placeholder="Kasa şifren" autocapitalize="off" autocorrect="off" spellcheck="false">
+        <label class="lbl">Anahtarlar (her satıra bir tane)</label>
+        <textarea class="inp" id="kasa-anahtar" rows="3" placeholder="AIzaSy...&#10;AIzaSy..." style="resize:vertical; font-size:.8rem;"></textarea>
+        <button class="btn btn-gold btn-big" style="margin-top:.6rem;" onclick="kasaEkle()">🔐 Kasaya ekle</button>
+        <button class="btn btn-ghost btn-sm" style="width:100%; margin-top:.5rem;" onclick="kasaHavuzTasi()">📥 Mevcut havuzdakileri kasaya taşı</button>
+        <button class="btn btn-ghost btn-sm" style="width:100%; margin-top:.5rem;" onclick="kasaListe()">📋 Kasadakileri göster</button>
+        <div id="kasa-liste" style="margin-top:.6rem;"></div>
+
+        <div style="margin-top:1rem; font-weight:900; font-size:.95rem;">🔔 Bildirimler</div>
+        <div class="row2" style="margin-top:.5rem;">
+          <button class="btn btn-ghost btn-sm" style="width:100%;" onclick="bildirimAc('yonetici')">🔔 Bana bildirim gelsin</button>
+          <button class="btn btn-ghost btn-sm" style="width:100%;" onclick="bildirimDene()">🔔 Bana dene</button>
+        </div>
+        <div id="kasa-bildirim" style="margin-top:.5rem; font-weight:800; font-size:.8rem;"></div>
+        <div style="font-size:.7rem; font-weight:700; color:#bfdbfe; margin-top:.4rem; line-height:1.4;">Öğrenci "İstek" gönderince sana; sen "Haftanın Mesajı"nı yayınlayınca öğrencilere bildirim gider (uygulama kapalıyken bile).</div>
+      </div>
+      <div style="height:.6rem;"></div>
       <label class="lbl" style="margin-top:0;">🗓️ Eğitim-Öğretim Yılı</label>
       <input type="text" class="inp" id="merkez-yil" placeholder="2025-2026">
       <label class="lbl">🔑 Ortak AI Anahtarı Havuzu <span style="color:#059669;">(HERKESTE ÇALIŞIR)</span></label>
@@ -695,14 +746,20 @@ function ringLoad(){
 }
 function ringSave(){ try{ localStorage.setItem('dk_lgs_keys',JSON.stringify(RING.keys)); localStorage.setItem('dk_lgs_keycool',JSON.stringify(RING.cool)); }catch(e){} }
 function ringSet(arr){ RING.keys=arr.filter(Boolean); RING.i=0; SETTINGS.keys=RING.keys; }
-function hasKey(){ return (RING.keys && RING.keys.length>0) || (MERKEZ.anahtarlar && MERKEZ.anahtarlar.length>0) || (GOMULU_ANAHTARLAR && GOMULU_ANAHTARLAR.length>0); }
+/* 🔐 Kasa (Cloudflare) aktif mi? — adres doluysa anahtar kasada saklanıyor */
+function kasaAktif(){ return !!String(window.ZKASA_URL||'').trim(); }
+function kasaAdres(){ return String(window.ZKASA_URL||'').trim().replace(/\/+$/,''); }
+function hasKey(){ if(kasaAktif()) return true; return (RING.keys && RING.keys.length>0) || (MERKEZ.anahtarlar && MERKEZ.anahtarlar.length>0) || (GOMULU_ANAHTARLAR && GOMULU_ANAHTARLAR.length>0); }
 function _karistir(a){ a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
 /* Deneme sırası: kişisel (kalıcı ring) → ortak havuz (RASTGELE) → gömülü. Ortak havuz cihaza kaydedilmez. */
 function anahtarSirasi(){
   const kis=(RING.keys||[]).slice();
   const ortak=_karistir(MERKEZ.anahtarlar||[]);
   const gom=(GOMULU_ANAHTARLAR||[]).slice();
-  return kis.concat(ortak,gom).filter(s=>s&&s.length>10).filter((v,i,a)=>a.indexOf(v)===i);
+  const liste=kis.concat(ortak,gom).filter(s=>s&&s.length>10).filter((v,i,a)=>a.indexOf(v)===i);
+  // Kasa doluyken havuz boşsa: sahte anahtar (yönlendirici URL'den siler, kasa gerçek anahtarı ekler)
+  if(!liste.length && kasaAktif()) return ['KASA-anahtar-kasada-saklaniyor-00'];
+  return liste;
 }
 
 /* ---- Firebase: ortak anahtarı buluttan oku / yaz ---- */
@@ -729,6 +786,9 @@ async function merkezYukle(){
       havuz=havuz.map(s=>String(s||'').trim()).filter(s=>s.length>10);
       havuz=havuz.filter((v,i,a)=>a.indexOf(v)===i);
       MERKEZ.anahtarlar=havuz;   // yalnızca bellekte; cihaza/RING'e KALICI yazılmaz (her açılışta buluttan taze)
+      // 🔐 Kasa adresi ortak ayardan (bu cihazda elle ayarlanmadıysa)
+      if(typeof d.zkasaUrl==='string'){ let yerel=null; try{ yerel=localStorage.getItem('zkasa_url'); }catch(_){}
+        if(yerel===null) window.ZKASA_URL=d.zkasaUrl; }
       updateStatusDot(); populateModels();
     }
   }catch(e){}
@@ -766,8 +826,9 @@ async function aiTani(boxId){
   // 4. Ortak havuz + kişisel
   ad.push('⏳ Anahtar havuzu…'); ciz();
   const ortakSayi=(MERKEZ.anahtarlar||[]).length, kisiselSayi=(RING.keys||[]).length;
-  if(ortakSayi+kisiselSayi===0){ ad[ad.length-1]='🔴 Anahtar: hiç yok (ortak 0, kişisel 0)'; TANI_METIN=taniOzet(ad); return ciz(false,{neden:'Ne ortak havuzda ne de cihazda anahtar var.',cozum:'Yönetici: Merkezi Yönetim → havuza anahtar ekle → Kaydet & Yayınla. Öğrenci: ⚙️ Ayarlar → kendi anahtarını gir.'}); }
-  ad[ad.length-1]='🟢 Anahtar: ortak '+ortakSayi+' · kişisel '+kisiselSayi;
+  if(kasaAktif()){ ad[ad.length-1]='🔐 Kasa: '+kasaAdres().replace(/^https:\/\//,'')+' · yedek havuz '+ortakSayi+' · kişisel '+kisiselSayi; }
+  else if(ortakSayi+kisiselSayi===0){ ad[ad.length-1]='🔴 Anahtar: hiç yok (ortak 0, kişisel 0)'; TANI_METIN=taniOzet(ad); return ciz(false,{neden:'Ne ortak havuzda ne de cihazda anahtar var.',cozum:'Yönetici: Merkezi Yönetim → havuza anahtar ekle → Kaydet & Yayınla. Öğrenci: ⚙️ Ayarlar → kendi anahtarını gir.'}); }
+  else { ad[ad.length-1]='🟢 Anahtar: ortak '+ortakSayi+' · kişisel '+kisiselSayi; }
   // 5. Gerçek AI çağrısı
   ad.push('⏳ Gerçek AI testi (canlı çağrı)…'); ciz();
   let calisti=false, sonEm='';
@@ -1026,7 +1087,7 @@ function renderAI(box, innerHTML){ try{ yuklBitir(); }catch(e){} box.innerHTML='
 const RICH='\n\nBİÇİM (ÇOK RENKLİ, göze hoş, akılda kalıcı olsun): <h4> ana başlık, <h5> alt başlık, <b> kalın, <ul><li> madde, <table> tablo. Renkli vurgu için farklı sınıflar kullan: <span class="hl-y">sarı</span>, <span class="hl-g">yeşil</span>, <span class="hl-b">mavi</span>, <span class="hl-p">pembe</span> (önemli kelimeleri renklendir). İpucu için <div class="tip-box">...</div>, tuzak/uyarı için <div class="warn-box">...</div>, kritik bilgi için <div class="banko">...</div>. Bol emoji kullan; her önemli fikri günlük hayattan bir METAFOR/benzetme ile açıkla; akılda kalıcı kısa şifreler üret. Uygun bir yere KAVRAM HARİTASI ekle: <div class="kmap"><div class="kmap-merkez">Ana Kavram</div><div class="kmap-dallar"><div class="kmap-dal">Dal<small>kısa not</small></div><div class="kmap-dal">Dal 2<small>not</small></div></div></div>. Markdown (#,*) ve LaTeX (dolar, frac) ASLA kullanma. HTML etiketlerini DÜZ ve GERÇEK yaz; kod bloğu (```), "html" satırı ya da kaçış (&lt; &gt;) KULLANMA. Türkçe yaz.';
 
 /* ==================== AYARLAR MODAL ==================== */
-function ayarAc(){ const m=document.getElementById('ayar-modal'); document.getElementById('ayar-keys').value=(RING.keys||[]).join('\n'); document.getElementById('ayar-model').value=SETTINGS.model||''; document.getElementById('ayar-sonuc').innerHTML=''; document.getElementById('kh-panel').innerHTML=''; m.classList.add('open'); }
+function ayarAc(){ const m=document.getElementById('ayar-modal'); document.getElementById('ayar-keys').value=(RING.keys||[]).join('\n'); document.getElementById('ayar-model').value=SETTINGS.model||''; document.getElementById('ayar-sonuc').innerHTML=''; document.getElementById('kh-panel').innerHTML=''; try{ ayarEkranEtiket(); }catch(e){} m.classList.add('open'); }
 function ayarKapat(){ document.getElementById('ayar-modal').classList.remove('open'); }
 function ayarKaydet(){
   const keys=anahtarlariAyikla(document.getElementById('ayar-keys').value);
@@ -1039,11 +1100,14 @@ async function anahtarTestEt(){
   const keys=anahtarlariAyikla(document.getElementById('ayar-keys').value);
   if(!keys.length){ document.getElementById('ayar-sonuc').innerHTML='Önce anahtar gir.'; return; }
   const p=document.getElementById('kh-panel'); p.innerHTML='';
+  window.__KASA_ATLA=true;   // bu anahtarın kendisini test et (kasayı atla)
+  try{
   for(let i=0;i<keys.length;i++){
     const div=document.createElement('div'); div.className='kh-item'; div.innerHTML='<span>⏳</span> Anahtar '+(i+1)+' test ediliyor...'; p.appendChild(div);
     try{ const list=await geminiListModels(keys[i]); div.innerHTML='<span>🟢</span> Anahtar '+(i+1)+' — çalışıyor ('+list.length+' model)'; }
     catch(e){ const em=String(e.message); div.innerHTML= /429|quota/i.test(em) ? '<span>🟡</span> Anahtar '+(i+1)+' — kota dolu' : '<span>🔴</span> Anahtar '+(i+1)+' — geçersiz'; }
   }
+  } finally { window.__KASA_ATLA=false; }
 }
 /* Yönetici: havuzdaki HER anahtarı GERÇEK çağrıyla test et (çalışıyor/kota/geçersiz) */
 function _maskeKisa(k){ return k.length<=10?k:('…'+k.slice(-5)); }
@@ -1054,6 +1118,8 @@ async function havuzTestEt(){
   let ok=0,kota=0,gecersiz=0;
   box.innerHTML='<div class="typing"><span></span><span></span><span></span></div>';
   const satir=[];
+  window.__KASA_ATLA=true;   // havuzdaki anahtarın kendisini test et (kasayı atla)
+  try{
   for(let i=0;i<keys.length;i++){
     let d,e2;
     try{ await callGeminiRaw(keys[i],'gemini-2.5-flash-lite','Sadece OK yaz.',null); d={e:'🟢',t:'çalışıyor'}; ok++; }
@@ -1061,6 +1127,7 @@ async function havuzTestEt(){
     satir.push('<div style="display:flex; align-items:center; gap:.5rem; padding:.4rem .5rem; border-bottom:1px dashed #e2e8f0;"><span>'+d.e+'</span><span style="flex:1; font-family:monospace; font-size:.74rem; font-weight:700; color:#334155;">Anahtar '+(i+1)+' ('+_maskeKisa(keys[i])+')</span><span style="font-size:.72rem; font-weight:800; color:#64748b;">'+d.t+'</span></div>');
     box.innerHTML='<div style="font-size:.74rem; font-weight:900; margin-bottom:.4rem;">🟢 '+ok+' çalışıyor · 🟡 '+kota+' kota · 🔴 '+gecersiz+' geçersiz</div>'+satir.join('');
   }
+  } finally { window.__KASA_ATLA=false; }
   box.innerHTML='<div style="font-size:.76rem; font-weight:900; margin-bottom:.4rem; color:'+(ok?'#059669':'#dc2626')+';">🟢 '+ok+' çalışıyor · 🟡 '+kota+' kota · 🔴 '+gecersiz+' geçersiz</div>'+satir.join('')
     +(kota?'<div class="hint" style="margin-top:.5rem;">🟡 olanların günlük/dakikalık kotası dolmuş ya da bitmek üzere. Yeni (farklı Google hesabı) anahtar ekleyip Kaydet & Yayınla yap.</div>':'')
     +(gecersiz?'<div class="hint" style="margin-top:.3rem;">🔴 olanları havuzdan sil (yukarıda × ile).</div>':'');
@@ -2450,6 +2517,8 @@ function merkezPanelAc(){
   const fb=document.getElementById('merkez-fb'); if(fb) fb.innerHTML = FBDB ? '☁️ Bulut Senkron (Firebase) ✅ bağlı' : '☁️ Bulut Senkron: ⚠️ bağlı değil (internet?)';
   ogrProfilListe();
   merkezSayac(); merkezKeyListe();
+  { const ku=document.getElementById('kasa-url'); if(ku) ku.value=String(window.ZKASA_URL||''); }
+  { const ks=document.getElementById('kasa-sifre'); if(ks){ try{ ks.value=localStorage.getItem('zkasa_sifre')||''; }catch(_){} } }
   try{ oneriYukle(); }catch(e){}
   try{ canliDurumYukle(); }catch(e){}
 }
@@ -2521,9 +2590,13 @@ async function merkezYaz(){
   try{
     const payload={ ortakAnahtarlar:havuz, waNumara:wa, ogretimYili:yil, haftaMesaj:hafta, ogrenciler:MERKEZ.ogrenciler||{}, ortakAnahtar:firebase.firestore.FieldValue.delete() };
     if(MERKEZ.sifre) payload.yoneticiSifre=MERKEZ.sifre;
+    payload.zkasaUrl=String(window.ZKASA_URL||'').trim();   // 🔐 kasa adresi tüm cihazlara
+    const haftaYeni = hafta && hafta!==MERKEZ.hafta;
     await merkezKaydet(payload);
     MERKEZ.anahtarlar=havuz; MERKEZ.wa=wa; MERKEZ.yil=yil; MERKEZ.hafta=hafta;   // ortak havuz yalnız bellekte; cihaza yazılmaz
     updateStatusDot(); populateModels();
+    // 🔔 Haftanın Mesajı değiştiyse öğrencilere bildirim (arka planda, sessiz)
+    if(haftaYeni){ bildirGonder('ogrenci',{ baslik:'📝 LGS Zafer · Haftanın Mesajı', govde:hafta.slice(0,160), etiket:'lgs-hafta-'+Date.now() }); }
     box.style.color='#059669'; box.innerHTML='<i class="fas fa-check-circle mr-1"></i> Yayınlandı! '+havuz.length+' anahtar bulutta. Artık uygulamayı açan <b>herkeste</b> AI otomatik açık. ✅';
     merkezSayac(); merkezKeyListe();
   }catch(e){ box.style.color='#dc2626'; box.innerHTML='<i class="fas fa-triangle-exclamation mr-1"></i> '+(e.message||'Kaydedilemedi.'); }
@@ -2542,7 +2615,9 @@ async function oneriGonder(){
   const box=document.getElementById('oneri-sonuc'); box.style.color='#64748b'; box.innerHTML='<i class="fas fa-spinner fa-spin mr-1"></i> Gönderiliyor...';
   if(!FBDB && !fbInit()){ box.innerHTML='<span style="color:#b45309">İnternet/Firebase yok. WhatsApp\'tan gönderebilirsin.</span>'; return; }
   try{
-    await FBDB.collection('oneriler').add({ ad:AKTIF.ad, sube:AKTIF.sube||'', sl:AKTIF.sl, metin, tarih:Date.now(), durum:'yeni' });
+    const yeniOneri=await FBDB.collection('oneriler').add({ ad:AKTIF.ad, sube:AKTIF.sube||'', sl:AKTIF.sl, metin, tarih:Date.now(), durum:'yeni' });
+    // 🔔 Yöneticiye bildirim (arka planda, sessiz; KVKK: yalnız ad)
+    bildirGonder('yonetici',{ baslik:'📩 LGS Zafer · Yeni İstek', govde:(AKTIF.ad||'').split(' ')[0]+(AKTIF.sube?(' ('+AKTIF.sube+')'):'')+': '+metin.slice(0,120), etiket:'lgs-oneri-'+((yeniOneri&&yeniOneri.id)||Date.now()) });
     box.style.color='#059669'; box.innerHTML='<i class="fas fa-check-circle mr-1"></i> Gönderildi! Barış Hocam en kısa sürede sisteme işleyecek. 🙌';
     document.getElementById('oneri-metin').value='';
   }catch(e){ box.style.color='#dc2626'; box.innerHTML='Gönderilemedi: '+(e.message||'').slice(0,60)+'. WhatsApp\'tan dene.'; }
@@ -2618,6 +2693,176 @@ async function oneriSil(i){
   ONERILER.splice(i,1); oneriListe();
 }
 
+/* ==================== 🔐 ANAHTAR KASASI (Cloudflare) — istemci tarafı ==================== */
+function kasaYaz(id,renk,html){ const b=document.getElementById(id); if(b){ b.style.color=renk; b.innerHTML=html; } }
+async function kasaIstek(yol, govde){
+  if(!kasaAktif()) throw new Error('Kasa adresi boş');
+  const r=await fetch(kasaAdres()+yol,{ method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(govde||{}) });
+  let j={}; try{ j=await r.json(); }catch(_){}
+  if(r.status===403) throw new Error('Şifre yanlış.');
+  if(!r.ok || j.hata) throw new Error(j.hata || ('Kasa hatası ('+r.status+')'));
+  return j;
+}
+function kasaSifreAl(){
+  const s=((document.getElementById('kasa-sifre')||{}).value||'').trim();
+  if(s){ try{ localStorage.setItem('zkasa_sifre', s); }catch(_){} }
+  return s;
+}
+async function kasaKaydet(){
+  const v=((document.getElementById('kasa-url')||{}).value||'').trim().replace(/\/+$/,'');
+  if(v && !/^https:\/\//i.test(v)){ kasaYaz('kasa-durum','#fca5a5','⛔ Adres https:// ile başlamalı.'); return; }
+  window.ZKASA_URL=v;
+  try{ localStorage.setItem('zkasa_url', v); }catch(_){}
+  try{ await merkezKaydet({ zkasaUrl:v }); }catch(_){}   // tüm cihazlara (bulut)
+  updateStatusDot();
+  kasaYaz('kasa-durum','#86efac', v ? '💾 Kaydedildi. Şimdi 🩺 Test et.' : '💾 Kasa kapatıldı — uygulama eski yöntemle (ortak havuz) çalışıyor.');
+}
+async function kasaTest(){
+  if(!kasaAktif()){ kasaYaz('kasa-durum','#fde68a','Kasa adresi boş — önce adresi yazıp 💾 Kaydet.'); return; }
+  kasaYaz('kasa-durum','#bfdbfe','<i class="fas fa-spinner fa-spin mr-1"></i> Kasa test ediliyor…');
+  let s=null, ai=false;
+  try{ const r=await fetch(kasaAdres()+'/saglik'); s=await r.json(); }catch(e){ s=null; }
+  if(!s || !s.ok){ kasaYaz('kasa-durum','#fca5a5','⛔ Kasaya ulaşılamadı. Adresi kontrol et (site izni: baris-ogretmen.github.io). Uygulama şu an eski yöntemle çalışmaya devam ediyor.'); return; }
+  try{
+    const r=await fetch(kasaAdres()+'/g/v1beta/models/gemini-2.5-flash:generateContent',{ method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ contents:[{role:'user',parts:[{text:'Sadece OK yaz.'}]}] }) });
+    if(r.ok){ const j=await r.json(); const c=j.candidates&&j.candidates[0]; ai=!!(c&&c.content); }
+  }catch(e){ ai=false; }
+  kasaYaz('kasa-durum', ai?'#86efac':'#fde68a', '✅ Kasa çalışıyor · 🔑 '+(s.anahtar||0)+' anahtar · 🤖 '+(ai?'✅ yapay zekâ cevap verdi':'⛔ yapay zekâ cevap vermedi (anahtar ekle / kota)'));
+}
+async function kasaEkle(){
+  const sifre=kasaSifreAl(); const ta=document.getElementById('kasa-anahtar');
+  const anahtarlar=(ta&&ta.value||'').trim();
+  if(!sifre){ kasaYaz('kasa-liste','#fde68a','🔒 Önce kasa şifresini yaz.'); return; }
+  if(!anahtarlar){ kasaYaz('kasa-liste','#fde68a','Eklemek için anahtar yapıştır.'); return; }
+  kasaYaz('kasa-liste','#bfdbfe','<i class="fas fa-spinner fa-spin mr-1"></i> Kasaya ekleniyor…');
+  try{
+    const j=await kasaIstek('/anahtar/ekle',{ sifre, anahtarlar });
+    if(ta) ta.value='';
+    kasaYaz('kasa-liste','#86efac','🔐 Eklendi: '+(j.eklenen||0)+' · zaten vardı: '+(j.zatenVardi||0)+((j.gecersiz&&j.gecersiz.length)?(' · geçersiz: '+j.gecersiz.join(', ')):'')+' · kasada toplam '+(j.toplam||0));
+  }catch(e){ kasaYaz('kasa-liste','#fca5a5','⛔ '+(e.message||'Eklenemedi.')); }
+}
+async function kasaHavuzTasi(){
+  const sifre=kasaSifreAl();
+  if(!sifre){ kasaYaz('kasa-liste','#fde68a','🔒 Önce kasa şifresini yaz.'); return; }
+  const kaynak=[].concat(MERKEZ.anahtarlar||[], anahtarlariAyikla((document.getElementById('merkez-anahtar')||{}).value||''), RING.keys||[])
+    .map(s=>String(s||'').trim()).filter(s=>s.length>10).filter((v,i,a)=>a.indexOf(v)===i);
+  if(!kaynak.length){ kasaYaz('kasa-liste','#fde68a','Havuzda taşınacak anahtar yok.'); return; }
+  kasaYaz('kasa-liste','#bfdbfe','<i class="fas fa-spinner fa-spin mr-1"></i> '+kaynak.length+' anahtar kasaya taşınıyor…');
+  try{
+    const j=await kasaIstek('/anahtar/ekle',{ sifre, anahtarlar:kaynak.join('\n') });
+    kasaYaz('kasa-liste','#86efac','📥 Taşındı: '+(j.eklenen||0)+' yeni · zaten vardı: '+(j.zatenVardi||0)+' · kasada toplam '+(j.toplam||0)+'. (Havuz yedek olarak duruyor.)');
+  }catch(e){ kasaYaz('kasa-liste','#fca5a5','⛔ '+(e.message||'Taşınamadı.')); }
+}
+async function kasaListe(){
+  const sifre=kasaSifreAl();
+  if(!sifre){ kasaYaz('kasa-liste','#fde68a','🔒 Önce kasa şifresini yaz.'); return; }
+  kasaYaz('kasa-liste','#bfdbfe','<i class="fas fa-spinner fa-spin mr-1"></i> Kasa okunuyor…');
+  try{
+    const j=await kasaIstek('/anahtar/liste',{ sifre });
+    const kasa=Array.isArray(j.kasa)?j.kasa:[], sabit=Array.isArray(j.sabit)?j.sabit:[];
+    let h='<div style="font-weight:900; margin-bottom:.4rem;">🔑 Kasada toplam '+(j.toplam||0)+' anahtar</div>';
+    kasa.forEach(x=>{ h+='<div style="display:flex; align-items:center; gap:.5rem; padding:.45rem .6rem; background:rgba(255,255,255,.1); border-radius:.6rem; margin-bottom:.35rem;"><span style="flex:1; font-family:monospace; font-size:.78rem;">'+String(x.m||'')+'</span><button onclick="kasaSil('+Number(x.i)+')" style="background:#fee2e2; color:#b91c1c; border:none; border-radius:.5rem; padding:.3rem .55rem; font-weight:900; cursor:pointer;">🗑️ Sil</button></div>'; });
+    sabit.forEach(m=>{ h+='<div style="padding:.45rem .6rem; background:rgba(255,255,255,.06); border-radius:.6rem; margin-bottom:.35rem; font-family:monospace; font-size:.78rem;">'+String(m)+' <span style="font-family:inherit; font-size:.68rem; color:#93c5fd;">(sabit)</span></div>'; });
+    if(!kasa.length && !sabit.length) h+='<div style="font-size:.78rem;">Kasada anahtar yok.</div>';
+    kasaYaz('kasa-liste','#fff',h);
+  }catch(e){ kasaYaz('kasa-liste','#fca5a5','⛔ '+(e.message||'Okunamadı.')); }
+}
+async function kasaSil(i){
+  if(!confirm('Bu anahtar kasadan silinsin mi?')) return;
+  const sifre=kasaSifreAl();
+  try{ await kasaIstek('/anahtar/sil',{ sifre, i:Number(i) }); kasaListe(); }
+  catch(e){ kasaYaz('kasa-liste','#fca5a5','⛔ '+(e.message||'Silinemedi.')); }
+}
+/* Ayarlar › Araçlar: ekran modu düğmesi */
+function ayarEkranEtiket(){ const l=document.getElementById('ekran-label'), b=document.getElementById('ayar-ekran-btn'); if(l&&b) b.textContent=l.textContent.replace('📺','📺 Ekran:'); }
+function ayarEkranDegis(){ try{ ZIRVE_ekranTikla(); }catch(e){} ayarEkranEtiket(); }
+
+/* ==================== 🔔 UYGULAMA KAPALIYKEN BİLDİRİM (kasa /bildir) ==================== */
+const VAPID_PUBLIC='BIXVUEpl8HJuKI61AtSnjS3WTdVvW7-TZeCZUTwJyw1Gd5hxFrUMvt95U_LHmEplAhaf9hqF0tS7zX3JRAcUfEk';
+function vapidBytes(){ const pad='='.repeat((4-VAPID_PUBLIC.length%4)%4); const b64=(VAPID_PUBLIC+pad).replace(/-/g,'+').replace(/_/g,'/'); const raw=atob(b64); const a=new Uint8Array(raw.length); for(let i=0;i<raw.length;i++) a[i]=raw.charCodeAt(i); return a; }
+function kisaHash(s){ let h1=5381,h2=52711; for(let i=0;i<s.length;i++){ const c=s.charCodeAt(i); h1=((h1<<5)+h1+c)>>>0; h2=((h2<<5)+h2^c)>>>0; } return h1.toString(36)+h2.toString(36); }
+function bildirimDestek(){ return ('Notification' in window) && ('serviceWorker' in navigator) && ('PushManager' in window); }
+function swKaydet(){ try{ if(location.protocol==='https:' && 'serviceWorker' in navigator) return navigator.serviceWorker.register('sw.js').catch(()=>null); }catch(e){} return Promise.resolve(null); }
+function swHazir(ms){ return Promise.race([ navigator.serviceWorker.ready, new Promise((_,rej)=>setTimeout(()=>rej(new Error('SW_YOK')), ms||8000)) ]); }
+function uygulamaAdresi(){ return location.href.split('#')[0].split('?')[0]; }
+async function aboneKaydet(sub, rol){
+  const j=sub&&sub.toJSON?sub.toJSON():null;
+  if(!j || !j.endpoint || !j.keys) return false;
+  const veri={ endpoint:String(j.endpoint), keys:{ p256dh:String(j.keys.p256dh||''), auth:String(j.keys.auth||'') },
+    rol:String(rol), ad: rol==='ogrenci' ? String(((AKTIF&&AKTIF.ad)||'').split(' ')[0]||'') : 'Yönetici',
+    sinif: rol==='ogrenci' ? String((AKTIF&&AKTIF.sube)||'') : '', tarih:Date.now(), olu:false };
+  await firestoreSet('abonelik/ab_'+rol+'_'+kisaHash(veri.endpoint), veri);
+  try{ localStorage.setItem('dk_lgs_abone_t_'+rol, String(Date.now()));
+    const r=JSON.parse(localStorage.getItem('dk_lgs_abone_rol')||'[]'); if(r.indexOf(rol)===-1){ r.push(rol); localStorage.setItem('dk_lgs_abone_rol', JSON.stringify(r)); } }catch(_){}
+  return true;
+}
+async function bildirimAc(rol){
+  const kutu = rol==='yonetici' ? 'kasa-bildirim' : 'bildirim-sonuc';
+  const yaz=(renk,m)=>kasaYaz(kutu, rol==='yonetici' ? (renk==='ok'?'#86efac':renk==='uyari'?'#fde68a':'#fca5a5') : (renk==='ok'?'#059669':renk==='uyari'?'#b45309':'#dc2626'), m);
+  if(location.protocol!=='https:'){ yaz('uyari','Bildirim yalnızca sitenin https adresinde çalışır.'); return; }
+  if(!bildirimDestek()){ yaz('uyari','📱 iPhone\'da: önce Paylaş → <b>Ana Ekrana Ekle</b>, sonra ana ekrandaki simgeden açıp tekrar bas.'); return; }
+  if(!kasaAktif()){ yaz('uyari','Bildirim için kasa adresi gerekli (yönetici ayarlar).'); return; }
+  try{
+    const izin=await Notification.requestPermission();
+    if(izin!=='granted'){ yaz('uyari','İzin verilmedi. Telefon Ayarlar → Bildirimler\'den izin verebilirsin.'); return; }
+    await swKaydet();
+    let reg; try{ reg=await swHazir(8000); }catch(e){ yaz('hata','⛔ sw.js bulunamadı — GitHub\'da uygulamayla aynı klasöre sw.js yüklenmeli.'); return; }
+    let sub=await reg.pushManager.getSubscription();
+    if(!sub) sub=await reg.pushManager.subscribe({ userVisibleOnly:true, applicationServerKey:vapidBytes() });
+    if(!FBDB && !fbInit()){ yaz('hata','⛔ İnternet/Firebase yok, kayıt yapılamadı.'); return; }
+    await aboneKaydet(sub, rol);
+    yaz('ok', rol==='yonetici' ? '🔔 Açıldı! Öğrenci istek gönderince sana bildirim gelecek. "🔔 Bana dene" ile kontrol et.' : '🔔 Bildirimler açıldı! Duyurular telefonuna gelecek.');
+  }catch(e){ yaz('hata','⛔ Bildirim açılamadı: '+String(e&&e.message||e).slice(0,70)); }
+}
+/* Gönderen beklemez: arka planda, hata sessiz */
+async function bildirGonder(rol, veri){
+  try{
+    if(!kasaAktif()) return null;
+    if(!FBDB && !fbInit()) return null;
+    const snap=await FBDB.collection('abonelik').where('rol','==',rol).limit(2000).get();
+    const liste=[]; const idMap={};
+    snap.forEach(d=>{ const x=d.data()||{}; if(x.olu===true || !x.endpoint || !x.keys) return; liste.push({ endpoint:x.endpoint, keys:{ p256dh:x.keys.p256dh, auth:x.keys.auth } }); idMap[x.endpoint]=d.id; });
+    if(!liste.length) return { gonderilen:0, toplam:0 };
+    const v=Object.assign({ url:uygulamaAdresi() }, veri||{});
+    let gonderilen=0;
+    for(let i=0;i<liste.length;i+=800){
+      const parca=liste.slice(i,i+800);
+      try{
+        const r=await fetch(kasaAdres()+'/bildir',{ method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ abonelikler:parca, veri:v }) });
+        const j=await r.json().catch(()=>({}));
+        gonderilen+=Number(j.gonderilen||0);
+        (Array.isArray(j.biten)?j.biten:[]).forEach(ep=>{ const id=idMap[ep]; if(id){ FBDB.collection('abonelik').doc(id).set({ olu:true },{ merge:true }).catch(()=>{}); } });
+      }catch(_){}
+    }
+    return { gonderilen, toplam:liste.length };
+  }catch(e){ return null; }
+}
+async function bildirimDene(){
+  const yaz=(renk,m)=>kasaYaz('kasa-bildirim',renk,m);
+  if(!kasaAktif()){ yaz('#fde68a','Önce kasa adresini kaydet.'); return; }
+  if(!bildirimDestek() || location.protocol!=='https:'){ yaz('#fde68a','Bu cihazda bildirim desteklenmiyor (iPhone\'da Ana Ekrana Ekle gerekli).'); return; }
+  try{
+    let reg; try{ reg=await swHazir(5000); }catch(e){ yaz('#fca5a5','⛔ sw.js yok — önce "🔔 Bana bildirim gelsin"e bas / sw.js\'i yükle.'); return; }
+    const sub=await reg.pushManager.getSubscription();
+    if(!sub){ yaz('#fde68a','Önce "🔔 Bana bildirim gelsin"e bas.'); return; }
+    const j=sub.toJSON();
+    const r=await fetch(kasaAdres()+'/bildir',{ method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ abonelikler:[{ endpoint:j.endpoint, keys:{ p256dh:j.keys.p256dh, auth:j.keys.auth } }], veri:{ baslik:'🔔 LGS Zafer · Deneme', govde:'Bildirimler çalışıyor! ✅', url:uygulamaAdresi(), etiket:'lgs-deneme-'+Date.now() } }) });
+    const k=await r.json().catch(()=>({}));
+    yaz(k.gonderilen?'#86efac':'#fde68a', k.gonderilen ? '✅ Deneme bildirimi gönderildi — birkaç saniye içinde gelir.' : '⚠️ Gönderilemedi'+(k.hata?(': '+k.hata):'.'));
+  }catch(e){ yaz('#fca5a5','⛔ '+String(e&&e.message||e).slice(0,70)); }
+}
+/* Günde bir aboneliği tazele (izin varsa) */
+async function aboneTazele(){
+  try{
+    if(location.protocol!=='https:' || !bildirimDestek() || Notification.permission!=='granted' || !kasaAktif()) return;
+    const roller=JSON.parse(localStorage.getItem('dk_lgs_abone_rol')||'[]'); if(!roller.length) return;
+    const reg=await swHazir(8000); const sub=await reg.pushManager.getSubscription(); if(!sub) return;
+    for(const rol of roller){ const t=Number(localStorage.getItem('dk_lgs_abone_t_'+rol)||0);
+      if(Date.now()-t>86400000){ if(rol==='ogrenci' && !AKTIF) continue; await aboneKaydet(sub, rol); } }
+  }catch(e){}
+}
+
 /* ==================== BAŞLAT ==================== */
 window.onload=function(){
   loadSettings(); ringLoad(); updateStatusDot(); populateModels();
@@ -2637,9 +2882,22 @@ window.onload=function(){
   renderStuList();
   try{ ZIRVE_ekranBaslat(); }catch(e){}
   try{ ZIRVE_pwaBaslat(); }catch(e){}
+  try{ swKaydet(); setTimeout(aboneTazele, 6000); }catch(e){}
   document.getElementById('pwa-modal').addEventListener('click', e=>{ if(e.target.id==='pwa-modal') pwaKapat(); });
   welcGoster();
 };
+</script>
+<script>
+/* 🔐 Kasa yönlendirici — Gemini isteklerini kasaya yollar; kasa hata verirse ESKİ YOLA düşer */
+(function(){ try{ var u0=localStorage.getItem('zkasa_url'); if(u0!==null) window.ZKASA_URL=u0; }catch(e){}
+  if(window.ZKASA_URL===undefined) window.ZKASA_URL='https://degisim-kasa.barilkay466.workers.dev';
+  var onceki=window.fetch; var ham=window.ZIRVE_ORIG_FETCH||onceki;
+  window.fetch=function(input,init){ try{ var kasa=String(window.ZKASA_URL||'').replace(/\/+$/,''); var url=(typeof input==='string')?input:((typeof URL!=='undefined'&&input instanceof URL)?String(input):((input&&input.url)?String(input.url):''));
+    if(kasa && !window.__KASA_ATLA && url.indexOf('https://generativelanguage.googleapis.com/')===0){ var p=new URL(url); p.searchParams.delete('key'); var hedef=kasa+'/g'+p.pathname+p.search;
+      var i2={}; if(init){ for(var a in init) i2[a]=init[a]; } else if(typeof input!=='string' && input && input.method){ i2.method=input.method; i2.headers=input.headers; }
+      if(i2.headers){ try{ var h=new Headers(i2.headers); h.delete('x-goog-api-key'); i2.headers=h; }catch(e){} }
+      var self=this,args=arguments; return ham.call(window,hedef,i2).then(function(r){ if(r.ok||(r.status>=400&&r.status<500&&[401,403,404,429].indexOf(r.status)<0)) return r; return onceki.apply(self,args); },function(){ return onceki.apply(self,args); }); } }catch(e){}
+    return onceki.apply(this,arguments); }; })();
 </script>
 </body>
 </html>
