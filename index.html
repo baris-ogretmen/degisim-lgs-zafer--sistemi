@@ -462,7 +462,7 @@ body.has-disc .qr-fab{ bottom:calc(4.4rem + env(safe-area-inset-bottom)); }
     <div id="bildirim-sonuc" style="margin-top:.4rem; font-weight:800; font-size:.8rem;"></div>
     <button class="btn btn-ghost btn-sm" style="width:100%; margin-top:.6rem; background:#ecfdf5; color:#047857; border-color:#6ee7b7;" onclick="ZIRVE_anaEkraneEkle()"><i class="fas fa-mobile-screen-button mr-1"></i> Ana Ekrana Uygulama Olarak Ekle</button>
     <button class="btn btn-ghost btn-sm" style="width:100%; margin-top:1rem; background:#eef2ff; color:#3730a3; border-color:#c7d2fe;" onclick="merkezAc()"><i class="fas fa-user-shield mr-1"></i> Merkezi Yönetim (Yönetici)</button>
-    <div style="text-align:center; margin-top:.8rem; font-size:.68rem; font-weight:800; color:#94a3b8;">LGS Zafer Sistemi · Sürüm 3.2 (Radar+)</div>
+    <div style="text-align:center; margin-top:.8rem; font-size:.68rem; font-weight:800; color:#94a3b8;">LGS Zafer Sistemi · Sürüm 3.3 (Deneme Paneli)</div>
   </div>
 </div>
 
@@ -3362,6 +3362,53 @@ details.acc summary{font-weight:700;cursor:pointer;font-size:14px}
 .sw{position:relative;width:44px;height:26px;border-radius:999px;background:var(--card3);flex:none;transition:.2s}
 .sw::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.2s}
 .sw.on{background:#16a34a}.sw.on::after{left:21px}
+:root{--zp-acc:#4f63e7}
+:root[data-theme="dark"]{--zp-acc:#7b8cff}
+body.genis .app{max-width:1280px}
+.zp-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;margin:14px 0 10px}
+.zp-sel{background:var(--card);color:var(--tx);border:1px solid var(--line2);border-radius:10px;padding:8px 10px;font:inherit;font-size:13px;max-width:260px}
+.zp-g{display:grid;gap:12px;margin-bottom:12px}
+@media(min-width:760px){.zp-g1{grid-template-columns:2.2fr 1fr}.zp-g2{grid-template-columns:2.2fr 1fr}.zp-g3{grid-template-columns:1.4fr 1fr}}
+.zp-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:12px;min-width:0}
+.zp-g .zp-card{margin-bottom:0}
+.zp-t{font-weight:800;font-size:14px;margin-bottom:8px}
+.zp-kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+@media(min-width:560px){.zp-kpis{grid-template-columns:repeat(4,1fr)}}
+.zp-kpi label{display:block;font-size:12px;color:var(--tx2);font-weight:600;margin-bottom:4px}
+.zp-kpi b{font-size:26px;font-weight:800;letter-spacing:-.5px;font-variant-numeric:tabular-nums}
+.zp-kpi b.acc{color:var(--zp-acc)}
+.zp-pill{font-size:11px;font-weight:800;padding:2px 7px;border-radius:999px;white-space:nowrap}
+.zp-pill.u{background:rgba(22,163,74,.14);color:#16a34a}.zp-pill.d{background:rgba(220,38,38,.14);color:#dc2626}.zp-pill.n{color:var(--tx3)}
+.zp-svg{width:100%;height:auto;display:block}
+.zp-grid{stroke:var(--line);stroke-width:1}
+.zp-ax{fill:var(--tx3);font-size:11px;font-weight:600;color:var(--tx3)}
+.zp-val{fill:var(--tx2);font-size:11px;font-weight:800}
+.zp-donut{width:180px;height:180px}
+.zp-dn{fill:var(--tx);font-size:26px;font-weight:800}
+.zp-leg{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;font-size:12px;color:var(--tx2);font-weight:600;margin-top:6px}
+.zp-leg i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+.zp-hero{background:linear-gradient(160deg,var(--zp-acc),#3b4cc0);color:#fff;border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:6px;min-height:220px}
+.zp-hero label{font-size:13px;font-weight:700;opacity:.9}
+.zp-hero>b{font-size:52px;font-weight:800;letter-spacing:-1.5px;line-height:1.05}
+.zp-mini{flex:1;display:flex;align-items:flex-end;gap:4px;min-height:70px;margin-top:6px}
+.zp-mini i{flex:1;background:rgba(255,255,255,.55);border-radius:4px 4px 0 0;min-width:4px}
+.zp-mini i:hover{background:#fff}
+.zp-dots{display:grid;gap:6px 4px;align-items:center}
+.zp-dots .c{display:flex;justify-content:center;align-items:center;min-height:26px;text-align:center}
+.zp-dots .c i{display:block;border-radius:50%;background:var(--zp-acc)}
+.zp-dn-ad{font-size:12px;font-weight:700;color:var(--tx2);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.zp-dn-ad:hover{color:var(--tx)}
+.zp-tbl{width:100%;border-collapse:collapse;font-size:13px}
+.zp-tbl th{text-align:left;font-size:11.5px;color:var(--tx3);font-weight:700;padding:9px 8px;background:var(--card2);white-space:nowrap}
+.zp-tbl td{padding:10px 8px;border-top:1px solid var(--line);white-space:nowrap;font-variant-numeric:tabular-nums}
+.zp-tbl tr.cl{cursor:pointer}.zp-tbl tr.cl:hover td{background:var(--card2)}
+.zp-hb{display:flex;align-items:center;gap:8px}
+.zp-hb i{display:block;height:10px;border-radius:0 4px 4px 0;background:var(--zp-acc);max-width:75%}
+.zp-hb span{font-size:12px;font-weight:700;color:var(--tx2)}
+.zp-chip{display:inline-block;font-size:11.5px;font-weight:700;padding:3px 8px;border-radius:999px;border:1px solid var(--line2);color:var(--tx2)}
+.zp-chip.u{background:rgba(22,163,74,.12);color:#16a34a;border-color:transparent}.zp-chip.d{background:rgba(220,38,38,.12);color:#dc2626;border-color:transparent}
+#zpTip{position:fixed;z-index:9999;pointer-events:none;opacity:0;transition:opacity .12s;background:var(--tx);color:var(--bg);font-size:12px;line-height:1.45;padding:7px 10px;border-radius:9px;box-shadow:0 6px 20px rgba(0,0,0,.25);max-width:240px}
+.nav-in.n6{grid-template-columns:repeat(6,1fr)}
 </style>
 </head>
 <body>
@@ -3377,8 +3424,9 @@ details.acc summary{font-weight:700;cursor:pointer;font-size:14px}
   <div id="banner"></div>
   <main id="view"></main>
 </div>
-<nav class="nav"><div class="nav-in">
+<nav class="nav"><div class="nav-in n6">
   <button class="nb on" data-v="tara" onclick="git('tara')"><span class="i">📡</span>Tara</button>
+  <button class="nb" data-v="panel" onclick="git('panel')"><span class="i">📊</span>Panel</button>
   <button class="nb" data-v="den" onclick="git('den')"><span class="i">📝</span>Denemeler</button>
   <button class="nb" data-v="ogr" onclick="git('ogr')"><span class="i">👥</span>Öğrenciler</button>
   <button class="nb" data-v="sinif" onclick="git('sinif')"><span class="i">📊</span>Sınıf</button>
@@ -3669,7 +3717,7 @@ let VIEW = 'tara';
 function git(v) { VIEW = v; $$('.nb').forEach(b => b.classList.toggle('on', b.dataset.v === v)); render(); window.scrollTo({ top: 0 }); }
 function render() {
   $('#okulAdi').textContent = `${AYAR.okul || ''}${AYAR.ogretmen ? ' · ' + AYAR.ogretmen : ''}`;
-  const f = { tara: vTara, den: vDen, ogr: vOgr, sinif: vSinif, ayar: vAyar }[VIEW] || vTara;
+  const f = { tara: vTara, panel: vPanel, den: vDen, ogr: vOgr, sinif: vSinif, ayar: vAyar }[VIEW] || vTara; document.body.classList.toggle('genis', VIEW === 'panel');
   try { $('#view').innerHTML = f(); } catch (e) { console.error(e); $('#view').innerHTML = `<div class="empty"><div class="big">⚠️</div><h3>Bir hata oluştu</h3><p class="mut sm">${esc(e.message)}</p></div>`; }
   if (VIEW === 'tara') taraSonraki();
 }
@@ -4648,6 +4696,117 @@ function okulListesi(puan) {
     ${yakin.length ? `<div class="sm" style="margin-top:10px;font-weight:800">🎯 Yakın hedefler (35 puan içinde)</div>${yakin.map(o => sat(o, 'k')).join('')}` : ''}
     ${uzak.length ? `<div class="sm" style="margin-top:10px;font-weight:800">🚀 Büyük hedefler</div>${uzak.map(o => sat(o, 'u')).join('')}` : ''}
     <p class="note">Adrese dayalı Anadolu liseleri (yerel yerleştirme) puan istemez. Deneme puanı tahmindir; gerçek yerleştirme LGS puanı, yüzdelik ve tercihlerle belirlenir. Kız / Erkek okullarına dikkat.</p></div>`;
+}
+
+/* ================= 📊 DENEME PANELİ (dashboard) ================= */
+function zpW() { return (window.innerWidth || 800) < 640 ? 380 : 760; }
+function zpRenk(v) { try { return getComputedStyle(document.documentElement).getPropertyValue(v).trim() || '#4f63e7'; } catch (e) { return '#4f63e7'; } }
+let DP = { id: '', g: '' };
+function zpTipBagla() {
+  if (window.__zpTip) return; window.__zpTip = 1;
+  const t = document.createElement('div'); t.id = 'zpTip'; document.body.appendChild(t);
+  const goster = (e) => { const el = e.target.closest && e.target.closest('[data-tip]'); if (!el) { t.style.opacity = 0; return; }
+    t.innerHTML = el.getAttribute('data-tip'); t.style.opacity = 1;
+    const x = Math.min(window.innerWidth - t.offsetWidth - 8, e.clientX + 14), y = Math.max(8, e.clientY - t.offsetHeight - 12);
+    t.style.left = x + 'px'; t.style.top = y + 'px'; };
+  document.addEventListener('pointermove', goster, { passive: true });
+  document.addEventListener('pointerdown', goster, { passive: true });
+  document.addEventListener('scroll', () => { t.style.opacity = 0; }, { passive: true, capture: true });
+}
+function zpDelta(v, d = 1, ters) { if (v == null || isNaN(v)) return ''; if (Math.abs(v) < 1e-9) return '<span class="zp-pill n">0</span>'; const iyi = ters ? v < 0 : v > 0; return `<span class="zp-pill ${iyi ? 'u' : 'd'}">${v > 0 ? '↑' : '↓'} ${fmt(Math.abs(v), d)}</span>`; }
+function zpBar(vals, labels, renkler, tips) { // dikey çubuk, 0-100
+  const W = zpW(), H = W > 500 ? 250 : 210, L = 34, R = 8, T = 22, B = 30, n = vals.length; if (!n) return '';
+  const bw = Math.min(46, (W - L - R) / n * 0.5), step = (W - L - R) / n, Y = v => T + (H - T - B) * (1 - Math.max(0, Math.min(100, v)) / 100);
+  let s = `<svg viewBox="0 0 ${W} ${H}" class="zp-svg" role="img">`;
+  [0, 25, 50, 75, 100].forEach(g => { s += `<line x1="${L}" x2="${W - R}" y1="${Y(g)}" y2="${Y(g)}" class="zp-grid"/><text x="${L - 6}" y="${Y(g) + 4}" class="zp-ax" text-anchor="end">${g}</text>`; });
+  vals.forEach((v, i) => { const x = L + step * i + (step - bw) / 2, y = Y(v), h = Math.max(2, Y(0) - y), r = Math.min(4, bw / 2, h);
+    s += `<path d="M${x},${Y(0)} V${y + r} Q${x},${y} ${x + r},${y} H${x + bw - r} Q${x + bw},${y} ${x + bw},${y + r} V${Y(0)} Z" fill="${renkler[i]}"/>`;
+    s += `<rect x="${L + step * i}" y="${T}" width="${step}" height="${H - T - B}" fill="transparent" data-tip="${tips[i]}"/>`;
+    s += `<text x="${x + bw / 2}" y="${y - 6}" class="zp-val" text-anchor="middle">%${fmt(v, 0)}</text><text x="${x + bw / 2}" y="${H - 10}" class="zp-ax" text-anchor="middle">${labels[i]}</text>`; });
+  return s + '</svg>';
+}
+function zpDonut(parts) { // [{ad,v,renk}]
+  const top = parts.reduce((a, p) => a + p.v, 0) || 1, R = 70, r = 46, C = 90; let a0 = -Math.PI / 2, s = `<svg viewBox="0 0 180 180" class="zp-donut">`;
+  parts.forEach(p => { if (!p.v) return; const a1 = a0 + p.v / top * Math.PI * 2 - 0.02; const big = a1 - a0 > Math.PI ? 1 : 0;
+    const P = (rr, a) => `${C + rr * Math.cos(a)},${C + rr * Math.sin(a)}`;
+    s += `<path d="M${P(R, a0)} A${R},${R} 0 ${big} 1 ${P(R, a1)} L${P(r, a1)} A${r},${r} 0 ${big} 0 ${P(r, a0)} Z" fill="${p.renk}" stroke="${zpRenk('--card')}" stroke-width="2" data-tip="<b>${p.ad}</b><br>${p.v} soru · %${fmt(p.v / top * 100, 0)}"/>`; a0 = a1 + 0.02; });
+  return s + `<text x="90" y="86" text-anchor="middle" class="zp-dn">%${fmt(parts[0].v / top * 100, 0)}</text><text x="90" y="104" text-anchor="middle" class="zp-ax">${esc(parts[0].ad.toLowerCase())}</text></svg>`;
+}
+function zpLine(labels, series) { // [{ad,renk,vals,dash}]
+  const W = zpW(), H = W > 500 ? 230 : 200, L = 40, R = 14, T = 16, B = 30, n = labels.length; const all = series.flatMap(s => s.vals).filter(v => v != null);
+  if (!all.length) return ''; let mn = Math.min(...all), mx = Math.max(...all); const pad = Math.max(10, (mx - mn) * .15); mn = Math.floor((mn - pad) / 10) * 10; mx = Math.ceil((mx + pad) / 10) * 10;
+  const X = i => n <= 1 ? (L + W - R) / 2 : L + (W - L - R) * i / (n - 1), Y = v => T + (H - T - B) * (1 - (v - mn) / (mx - mn));
+  let s = `<svg viewBox="0 0 ${W} ${H}" class="zp-svg">`; for (let k = 0; k <= 4; k++) { const v = mn + (mx - mn) * k / 4; s += `<line x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}" class="zp-grid"/><text x="${L - 6}" y="${Y(v) + 4}" class="zp-ax" text-anchor="end">${fmt(v, 0)}</text>`; }
+  series.forEach((sr, si) => { const pts = sr.vals.map((v, i) => v == null ? null : [X(i), Y(v)]).filter(Boolean);
+    if (si === 0 && pts.length > 1) s += `<path d="M${pts[0][0]},${Y(mn)} L${pts.map(p => p.join(',')).join(' L')} L${pts[pts.length - 1][0]},${Y(mn)} Z" fill="${sr.renk}" opacity=".12"/>`;
+    if (pts.length > 1) s += `<polyline points="${pts.map(p => p.join(',')).join(' ')}" fill="none" stroke="${sr.renk}" stroke-width="2" ${sr.dash ? 'stroke-dasharray="5 5"' : ''}/>`;
+    pts.forEach(p => { s += `<circle cx="${p[0]}" cy="${p[1]}" r="4.5" fill="${sr.renk}" stroke="${zpRenk('--card')}" stroke-width="2"/>`; }); });
+  labels.forEach((l, i) => { s += `<text x="${X(i)}" y="${H - 10}" class="zp-ax" text-anchor="middle">${esc(l)}</text><rect x="${X(i) - (W - L - R) / Math.max(1, n) / 2}" y="${T}" width="${(W - L - R) / Math.max(1, n)}" height="${H - T - B}" fill="transparent" data-tip="<b>${esc(l)}</b><br>${series.map(sr => `${esc(sr.ad)}: <b>${sr.vals[i] == null ? '—' : fmt(sr.vals[i])}</b>`).join('<br>')}"/>`; });
+  return s + '</svg>';
+}
+function zpHist(puanlar) {
+  const bins = [[0, 250], [250, 300], [300, 350], [350, 400], [400, 450], [450, 501]]; const c = bins.map(([a, b]) => puanlar.filter(p => p >= a && p < b).length); const mx = Math.max(1, ...c);
+  const W = zpW(), H = W > 500 ? 200 : 170, L = 10, R = 10, T = 20, B = 30, step = (W - L - R) / bins.length, bw = step * .62; let s = `<svg viewBox="0 0 ${W} ${H}" class="zp-svg">`;
+  bins.forEach((bn, i) => { const h = (H - T - B) * c[i] / mx, x = L + step * i + (step - bw) / 2, y = H - B - h; const lab = i === 0 ? '<250' : i === bins.length - 1 ? '450+' : `${bn[0]}–${bn[1]}`;
+    if (c[i]) s += `<rect x="${x}" y="${y}" width="${bw}" height="${h}" rx="4" fill="${zpRenk('--zp-acc')}" opacity="${.35 + .65 * c[i] / mx}"/><text x="${x + bw / 2}" y="${y - 6}" class="zp-val" text-anchor="middle">${c[i]}</text>`;
+    s += `<rect x="${L + step * i}" y="${T}" width="${step}" height="${H - T - B}" fill="transparent" data-tip="<b>${lab}</b> puan<br>${c[i]} öğrenci"/><text x="${x + bw / 2}" y="${H - 10}" class="zp-ax" text-anchor="middle">${lab}</text>`; });
+  return s + `<line x1="${L}" x2="${W - R}" y1="${H - B}" y2="${H - B}" class="zp-grid"/></svg>`;
+}
+function vPanel() {
+  zpTipBagla();
+  const C = calc(); if (!C.exOrd.length) return '<div class="h1">Deneme Paneli</div>' + bosDurum();
+  const gs = gruplar(); const uy = r => !DP.g || subeAd(r.st) === DP.g;
+  const exs = C.exOrd.filter(ex => C.byEx[ex.id].list.some(uy)); if (!exs.length) { DP.g = ''; return vPanel(); }
+  if (!DP.id || !exs.some(e => e.id === DP.id)) DP.id = exs[exs.length - 1].id;
+  const ex = denBul(DP.id), exc = C.byEx[ex.id], L = exc.list.filter(uy).slice().sort((a, b) => b.puan - a.puan);
+  const ei = exs.findIndex(e => e.id === ex.id), onc = ei > 0 ? exs[ei - 1] : null, oL = onc ? C.byEx[onc.id].list.filter(uy) : [];
+  const ps = L.map(r => r.puan), nets = L.map(r => r.tot.net), oP = oL.length ? ort(oL.map(r => r.puan)) : null, oN = oL.length ? ort(oL.map(r => r.tot.net)) : null;
+  const ortP = ort(ps), ortN = ort(nets);
+  const ks = ex.dersler.map(d => d.k).filter(k => L.some(r => r.ds[k]));
+  const dersOranP = k => { const a = L.filter(r => r.ds[k]); return a.length ? ort(a.map(r => Math.max(0, r.ds[k].net) / (r.ds[k].n || 1))) * 100 : 0; };
+  const dersOrtN = k => { const a = L.filter(r => r.ds[k]); return a.length ? ort(a.map(r => r.ds[k].net)) : 0; };
+  let D = 0, Yn = 0, Bn = 0; L.forEach(r => { D += r.tot.d; Yn += r.tot.y; Bn += r.tot.b; });
+  let genelOrt = null; try { const e0 = (ex.sonuc || {})[L[0].sid] || {}; if (e0._der && e0._der.genelOrt) genelOrt = +e0._der.genelOrt; } catch (e) { }
+  const kpi = (lab, val, dl, cls2 = '') => `<div class="zp-kpi"><label>${lab}</label><div class="row" style="gap:8px;align-items:baseline"><b class="${cls2}">${val}</b>${dl}</div></div>`;
+  const bars = ks.map(dersOranP);
+  const tips = ks.map(k => `<b>${DERS[k].ad}</b><br>Ort. net ${fmt(dersOrtN(k), 2)} / ${ex.dersler.find(d => d.k === k).n}<br>Başarı %${fmt(dersOranP(k), 0)}`);
+  // ısı noktaları
+  const isi = `<div class="zp-dots" style="grid-template-columns:minmax(90px,1.4fr) repeat(${ks.length},1fr)"><span></span>${ks.map(k => `<span class="zp-ax c">${DERS[k].kisa}</span>`).join('')}
+    ${L.map(r => `<span class="zp-dn-ad" onclick="ogrAc('${r.sid}')">${esc(kisaAd(r.st.ad))}</span>${ks.map(k => { const x = r.ds[k]; const o = x ? Math.max(0, x.net) / (x.n || 1) : 0; const sz = 6 + 16 * o; return `<span class="c" data-tip="<b>${esc(r.st.ad)}</b><br>${DERS[k].ad}: ${x ? `${x.d}D ${x.y}Y ${x.b}B · net ${fmt(x.net, 2)}` : '—'}<br>Başarı %${fmt(o * 100, 0)}"><i style="width:${sz}px;height:${sz}px;opacity:${.25 + .75 * o}"></i></span>`; }).join('')}`).join('')}</div>`;
+  // konu tablosu
+  const kon = konuOzet(L).filter(o => o.n >= 2).slice(0, 12);
+  const maxP = Math.max(...ps, 1);
+  const durum = r => { const o = oL.find(z => z.sid === r.sid); if (o) { const d = r.puan - o.puan; return d >= 0 ? `<span class="zp-chip u">↑ ${fmt(d)}</span>` : `<span class="zp-chip d">↓ ${fmt(-d)}</span>`; } return r.puan >= ortP ? '<span class="zp-chip u">Ortalama üstü</span>' : '<span class="zp-chip d">Ortalama altı</span>'; };
+  const zayif = r => { const k = konuOzet([r]).filter(o => o.n >= 2)[0]; return k ? `<span class="zp-chip" style="border-color:${DERS[k.ders].renk}">${DERS[k.ders].kisa} · ${esc(k.konu)}</span>` : '<span class="mut xs">—</span>'; };
+  return `<div class="zp">
+  <div class="zp-head"><div><div class="h1" style="margin:0">📊 Deneme Paneli</div><div class="mut sm">${esc(ex.ad)} · ${trTarih(ex.tarih)}${ex.yayin ? ' · ' + esc(ex.yayin) : ''}</div></div>
+    <div class="row wrap" style="gap:8px"><select class="zp-sel" onchange="DP.id=this.value;render()">${exs.slice().reverse().map(e => `<option value="${e.id}" ${e.id === ex.id ? 'selected' : ''}>${esc(exKisa(e))} · ${esc(e.ad)}</option>`).join('')}</select>
+    <button class="btn sm" onclick="denemeCSV('${ex.id}')">⬇ Dışa aktar</button><button class="btn sm" onclick="denemeYazdir('${ex.id}')">🖨️ Yazdır</button></div></div>
+  ${gs.length > 1 ? `<div class="chips" style="margin:2px 0 10px"><button class="chip ${!DP.g ? 'on' : ''}" onclick="DP.g='';render()">Tüm okul</button>${gs.map(x => `<button class="chip ${DP.g === x ? 'on' : ''}" onclick="DP.g='${jsq(x)}';render()">${esc(x)}</button>`).join('')}</div>` : ''}
+  <div class="zp-g zp-g1">
+    <div class="zp-card"><div class="zp-kpis">${kpi('Ortalama puan', fmt(ortP), zpDelta(oP == null ? null : ortP - oP), 'acc')}${kpi('Katılım', L.length, '')}${kpi('Ortalama net', fmt(ortN, 2), zpDelta(oN == null ? null : ortN - oN, 2))}${kpi('En yüksek', fmt(Math.max(...ps)), '')}</div>
+      <div class="zp-t" style="margin-top:14px">Ders başarı oranı <span class="mut xs">(ortalama net / soru)</span></div>${zpBar(bars, ks.map(k => DERS[k].kisa), ks.map(() => zpRenk('--zp-acc')), tips)}</div>
+    <div class="zp-card"><div class="zp-t">Cevap dağılımı</div><div style="display:flex;justify-content:center">${zpDonut([{ ad: 'Doğru', v: D, renk: '#16a34a' }, { ad: 'Yanlış', v: Yn, renk: '#dc2626' }, { ad: 'Boş', v: Bn, renk: '#94a3b8' }])}</div>
+      <div class="zp-leg"><span><i style="background:#16a34a"></i>Doğru ${D}</span><span><i style="background:#dc2626"></i>Yanlış ${Yn}</span><span><i style="background:#94a3b8"></i>Boş ${Bn}</span></div>
+      <p class="mut xs" style="margin:8px 0 0;text-align:center">Yanlışların götürdüğü: ≈ ${fmt(Yn / (ex.ceza || 3), 1)} net</p></div>
+  </div>
+  <div class="zp-g zp-g2">
+    <div class="zp-card">${exs.length > 1 ? `<div class="zp-t">Puan gidişatı</div>${zpLine(exs.map(exKisa), [{ ad: 'Ortalama', renk: zpRenk('--zp-acc'), vals: exs.map(e => ort(C.byEx[e.id].list.filter(uy).map(r => r.puan))) }, { ad: 'En yüksek', renk: '#16a34a', vals: exs.map(e => Math.max(...C.byEx[e.id].list.filter(uy).map(r => r.puan))), dash: 1 }])}<div class="zp-leg"><span><i style="background:var(--zp-acc)"></i>Ortalama</span><span><i style="background:#16a34a"></i>En yüksek</span></div>` : `<div class="zp-t">Puan dağılımı</div>${zpHist(ps)}<p class="mut xs" style="margin:4px 0 0">İkinci deneme girilince burada puan gidişatı çizgisi de açılır.</p>`}</div>
+    <div class="zp-hero"><label>Sınıf ortalaması</label><b>${fmt(ortP)}</b>
+      ${genelOrt ? `<div class="sm" style="opacity:.9">Yayın geneli: ${fmt(genelOrt)} · <b>${ortP >= genelOrt ? '+' : '−'}${fmt(Math.abs(ortP - genelOrt))}</b></div>` : ''}
+      <div class="zp-mini">${L.slice().reverse().map(r => `<i style="height:${Math.max(6, r.puan / maxP * 100)}%" data-tip="<b>${esc(r.st.ad)}</b><br>${fmt(r.puan)} puan"></i>`).join('')}</div>
+      <div class="xs" style="opacity:.85">Her çubuk bir öğrenci</div></div>
+  </div>
+  <div class="zp-g zp-g3">
+    <div class="zp-card"><div class="zp-t">Öğrenci × ders başarı haritası</div>${isi}<p class="mut xs" style="margin:8px 0 0">Nokta büyüdükçe başarı artar. İsme dokun → öğrenci sayfası.</p></div>
+    <div class="zp-card"><div class="zp-t">Dersler</div><table class="zp-tbl"><thead><tr><th>Ders</th><th>Ort. net</th><th style="width:45%">Başarı</th></tr></thead><tbody>
+      ${ks.map(k => ({ k, p: dersOranP(k) })).sort((a, b) => b.p - a.p).map(o => `<tr><td><span style="color:${DERS[o.k].renk}">●</span> ${DERS[o.k].ad.replace('T.C. İnkılap Tarihi ve Atatürkçülük', 'İnkılap Tarihi').replace('Din Kültürü ve Ahlak Bilgisi', 'Din Kültürü')}</td><td>${fmt(dersOrtN(o.k), 2)}</td><td><div class="zp-hb"><i style="width:${Math.max(2, o.p)}%"></i><span>%${fmt(o.p, 0)}</span></div></td></tr>`).join('')}</tbody></table></div>
+  </div>
+  <div class="zp-card"><div class="row-sb"><div class="zp-t">Öğrenci listesi</div><span class="mut xs">${L.length} öğrenci · satıra dokun</span></div><div class="tw"><table class="zp-tbl"><thead><tr><th>#</th><th>Öğrenci</th><th style="min-width:150px">Puan</th><th>Net</th><th>D / Y / B</th><th>En zayıf konu</th><th>Durum</th></tr></thead><tbody>
+    ${L.map((r, i) => `<tr class="cl" onclick="ogrAc('${r.sid}')"><td class="mut">${i + 1}</td><td><div class="row" style="gap:8px">${avatar(r.st, 28)}<b>${esc(r.st.ad)}</b></div></td><td><div class="zp-hb"><i style="width:${r.puan / maxP * 100}%"></i><span>${fmt(r.puan)}</span></div></td><td>${fmt(r.tot.net, 2)}</td><td><span class="up">${r.tot.d}</span> / <span class="down">${r.tot.y}</span> / <span class="mut">${r.tot.b}</span></td><td>${zayif(r)}</td><td>${durum(r)}</td></tr>`).join('')}</tbody></table></div></div>
+  ${kon.length ? `<div class="zp-card"><div class="row-sb"><div class="zp-t">Konu analizi</div><span class="mut xs">en zayıftan · dokun → detay</span></div><div class="tw"><table class="zp-tbl"><thead><tr><th>Konu</th><th>Ders</th><th>Cevap</th><th style="min-width:160px">Başarı</th><th>D</th><th>Y</th><th>B</th></tr></thead><tbody>
+    ${kon.map(o => `<tr class="cl" onclick="konuDetay('${o.ders}','${esc(jsq(o.konu))}','')"><td><b>${esc(o.konu)}</b></td><td><span class="pill" style="background:${DERS[o.ders].renk};color:#fff">${DERS[o.ders].kisa}</span></td><td>${o.n}</td><td><div class="zp-hb"><i style="width:${Math.max(2, o.oran * 100)}%;background:${isiRenk(o.oran)}"></i><span>%${fmt(o.oran * 100, 0)}</span></div></td><td class="up">${o.d}</td><td class="down">${o.y}</td><td class="mut">${o.b}</td></tr>`).join('')}</tbody></table></div></div>` : ''}
+  </div>`;
 }
 
 (function baslat() {
